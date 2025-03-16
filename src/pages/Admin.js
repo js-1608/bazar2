@@ -528,7 +528,7 @@ const Admin = () => {
             <thead>
               <tr className="bg-gray-800 text-white">
                 <th className="p-3 text-left">Games List</th>
-                <th className="p-3 text-center">
+                <th className="p-3 text-center md:block hidden">
                   {new Date(dates[0]).toLocaleDateString()} <br/>
                   {new Date(dates[0]).toLocaleDateString("en-US", {weekday: 'short'})}
                 </th>
@@ -546,7 +546,7 @@ const Admin = () => {
                     <div className="font-semibold">{team.name}</div>
                     <div className="text-sm text-gray-500">at {team.time}</div>
                   </td>
-                  <td className="p-3 text-center text-2xl font-bold">{team.results[dates[0]] || 'XX'}</td>
+                  <td className="p-3 text-center text-2xl font-bold md:block hidden">{team.results[dates[0]] || 'XX'}</td>
                   <td className="p-3 text-center text-2xl font-bold">{team.results[dates[1]] || 'XX'}</td>
                   <td className="p-3">
                     <div className="flex justify-center gap-2">
