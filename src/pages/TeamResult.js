@@ -1,34 +1,50 @@
 import React, { useState, useEffect } from "react";
 
+// Function to sanitize potential XSS threats in strings
+const sanitizeString = (str) => {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+};
+
 const TeamResults = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  const fetchData = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/teams/");
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json(); // Parse JSON response
-      setTeams(data); // Store the entire API response in state
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("http://localhost:5500/api/teams");
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Ensure safe rendering of team names
+        const sanitizedData = data.map((team) => ({
+          ...team,
+          name: sanitizeString(team.name),
+          announcement_time: team.announcement_time || "N/A", // Handle missing time
+          results: team.results || {} // Ensure results exist
+        }));
+
+        setTeams(sanitizedData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
   }, []);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
     <div className="p-4">
@@ -37,16 +53,21 @@ const TeamResults = () => {
         {teams.map((team) => (
           <div key={team.id} className="border p-4 rounded-md shadow-md">
             <h3 className="text-lg font-semibold">{team.name}</h3>
-            <p className="text-sm text-gray-600">Time: {team.time}</p>
+            <p className="text-sm text-gray-600">Time: {team.announcement_time}</p>
+
             <div className="mt-2">
               <h4 className="font-semibold">Results:</h4>
-              <ul className="list-disc pl-4">
-                {Object.entries(team.results).map(([date, result]) => (
-                  <li key={date}>
-                    <span className="font-medium">{date}:</span> {result}
-                  </li>
-                ))}
-              </ul>
+              {Object.keys(team.results).length > 0 ? (
+                <ul className="list-disc pl-4">
+                  {Object.entries(team.results).map(([date, result]) => (
+                    <li key={date}>
+                      <span className="font-medium">{date}:</span> {result}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500">No results available</p>
+              )}
             </div>
           </div>
         ))}

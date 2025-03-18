@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Edit, BarChart2 } from 'lucide-react';
 // import dataService from '../services/dataService';
 import dataService from '../services/DataService';
+import { useParams,useNavigate,useLocation } from 'react-router-dom';
 
 const AdminPanel = () => {
   const [teams, setTeams] = useState([]);

@@ -2,8 +2,8 @@
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const API_URL = 'http://localhost:5000/api';
-const socket = io('http://localhost:5000');
+const API_URL = 'http://localhost:3000/api';
+const socket = io('http://localhost:3000');
 
 export const DataService = {
   // Get all teams
