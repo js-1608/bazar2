@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
 import './App.css';
-import { useParams,useNavigate,useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import TeamResults from './pages/TeamResult';
+
 // Auth Context
 const AuthContext = React.createContext();
 
@@ -37,8 +38,6 @@ const apiService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessKey, password })
     });
-    console.log(accessKey);
-
     
     if (!response.ok) {
       throw new Error('Login failed');
@@ -49,7 +48,7 @@ const apiService = {
   
   getTeams: async (token) => {
     const response = await fetch(`${API_URL}/api/teams`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
     
     if (!response.ok) {
@@ -60,7 +59,7 @@ const apiService = {
   },
   
   createTeam: async (teamData, token) => {
-    const response = await fetch(`${API_URL}/api/teams`, {
+    const response = await fetch(`${API_URL}/admin/teams`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +76,7 @@ const apiService = {
   },
   
   updateTeam: async (id, teamData, token) => {
-    const response = await fetch(`${API_URL}/api/teams/${id}`, {
+    const response = await fetch(`${API_URL}/admin/teams/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +93,7 @@ const apiService = {
   },
   
   deleteTeam: async (id, token) => {
-    const response = await fetch(`${API_URL}/api/teams/${id}`, {
+    const response = await fetch(`${API_URL}/admin/teams/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -107,6 +106,9 @@ const apiService = {
   },
   
   publishResult: async (resultData, token) => {
+    console.log("Publishing result with data:", resultData);
+    console.log("Using token:", token);
+    
     const response = await fetch(`${API_URL}/admin/results`, {
       method: 'POST',
       headers: {
@@ -115,9 +117,44 @@ const apiService = {
       },
       body: JSON.stringify(resultData)
     });
+    // In your publishResult function
+    
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Server responded with error:", response.status, errorData);
+      console.log("Sending exact payload:", JSON.stringify(resultData));
+     throw new Error(`Failed to publish result: ${response.status}`);
+    }
+    
+    return response.json();
+  },
+  
+  updateResult: async (id, resultData, token) => {
+    const response = await fetch(`${API_URL}/admin/results/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(resultData)
+    });
     
     if (!response.ok) {
-      throw new Error('Failed to publish result');
+      throw new Error('Failed to update result');
+    }
+    
+    return response.json();
+  },
+  
+  deleteResult: async (id, token) => {
+    const response = await fetch(`${API_URL}/admin/results/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete result');
     }
     
     return response.json();
@@ -125,11 +162,95 @@ const apiService = {
   
   getDailyResults: async (date, token) => {
     const response = await fetch(`${API_URL}/api/results/daily?date=${date}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
     
     if (!response.ok) {
       throw new Error('Failed to fetch daily results');
+    }
+    
+    return response.json();
+  },
+  
+  getMonthlyResults: async (team, month) => {
+    const response = await fetch(`${API_URL}/api/results/monthly`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team, month })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch monthly results');
+    }
+    
+    return response.json();
+  },
+  
+  getTodayResults: async () => {
+    const response = await fetch(`${API_URL}/api/today`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch today\'s results');
+    }
+    
+    return response.json();
+  },
+  
+  // Scheduled games API endpoints
+  getScheduledGames: async (date, token) => {
+    const response = await fetch(`${API_URL}/api/schedule?date=${date}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch scheduled games');
+    }
+    
+    return response.json();
+  },
+  
+  createScheduledGame: async (gameData, token) => {
+    const response = await fetch(`${API_URL}/admin/schedule`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(gameData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create scheduled game');
+    }
+    
+    return response.json();
+  },
+  
+  updateScheduledGame: async (id, gameData, token) => {
+    const response = await fetch(`${API_URL}/admin/schedule/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(gameData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update scheduled game');
+    }
+    
+    return response.json();
+  },
+  
+  deleteScheduledGame: async (id, token) => {
+    const response = await fetch(`${API_URL}/admin/schedule/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete scheduled game');
     }
     
     return response.json();
@@ -142,13 +263,17 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = React.useContext(AuthContext);
+  const navigate = useNavigate();
   
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const data = await apiService.login(accessKey, password);
+      console.log("Login successful, token:", data.token);
       login(data.token);
+      navigate('/teams');
     } catch (err) {
+      console.error("Login failed:", err);
       setError('Invalid credentials');
     }
   };
@@ -193,6 +318,7 @@ const TeamList = () => {
       try {
         const data = await apiService.getTeams(token);
         setTeams(data);
+        // alert(teams)
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch teams');
@@ -352,6 +478,17 @@ const ResultCalendar = () => {
     setDate(e.target.value);
   };
   
+  const handleDeleteResult = async (id) => {
+    if (window.confirm('Are you sure you want to delete this result?')) {
+      try {
+        await apiService.deleteResult(id, token);
+        setResults(results.filter(result => result.id !== id));
+      } catch (err) {
+        setError('Failed to delete result');
+      }
+    }
+  };
+  
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error">{error}</div>;
   
@@ -379,6 +516,7 @@ const ResultCalendar = () => {
               <tr>
                 <th>Team</th>
                 <th>Result</th>
+                <th>Announcement Time</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -387,8 +525,15 @@ const ResultCalendar = () => {
                 <tr key={result.id}>
                   <td>{result.team}</td>
                   <td>{result.result}</td>
+                  <td>{result.announcement_time}</td>
                   <td>
-                    <Link to={`/results/edit/${result.id}?date=${date}`} className="btn-secondary">Edit</Link>
+                    <Link to={`/admin/results/edit/${result.id}?date=${date}`} className="btn-secondary">Edit</Link>
+                    <button 
+                      onClick={() => handleDeleteResult(result.id)} 
+                      className="btn-danger"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -402,9 +547,10 @@ const ResultCalendar = () => {
 
 const ResultForm = ({ isEdit = false }) => {
   const [formData, setFormData] = useState({
-    team_id: '',
+    team: '',
     result: '',
-    result_date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    announcement_time: '12:00:00'
   });
   const [teams, setTeams] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -415,7 +561,7 @@ const ResultForm = ({ isEdit = false }) => {
   const location = useLocation();
   
   useEffect(() => {
-    const fetchTeams = async () => {
+    const fetchData = async () => {
       try {
         const teamsData = await apiService.getTeams(token);
         setTeams(teamsData);
@@ -424,19 +570,19 @@ const ResultForm = ({ isEdit = false }) => {
         const params = new URLSearchParams(location.search);
         const dateParam = params.get('date');
         if (dateParam) {
-          setFormData(prev => ({ ...prev, result_date: dateParam }));
+          setFormData(prev => ({ ...prev, date: dateParam }));
         }
         
         // If editing, fetch the result details
         if (isEdit && id) {
-          // This is a simplified approach. In a real app, you'd have an API endpoint to fetch a specific result
-          const results = await apiService.getDailyResults(dateParam, token);
+          const results = await apiService.getDailyResults(dateParam || formData.date, token);
           const result = results.find(r => r.id === parseInt(id));
           if (result) {
             setFormData({
-              team_id: result.team_id,
+              team: result.team_id.toString(),
               result: result.result,
-              result_date: result.result_date
+              date: result.result_date,
+              announcement_time: result.announcement_time
             });
           }
         }
@@ -445,8 +591,8 @@ const ResultForm = ({ isEdit = false }) => {
       }
     };
     
-    fetchTeams();
-  }, [isEdit, id, token, location.search]);
+    fetchData();
+  }, [isEdit, id, token, location.search, formData.date]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -458,10 +604,22 @@ const ResultForm = ({ isEdit = false }) => {
     setSubmitting(true);
     
     try {
-      await apiService.publishResult(formData, token);
-      navigate(`/results?date=${formData.result_date}`);
+      const payload = {
+        team: formData.team, // This should be the team ID
+        date: formData.date,
+        result: formData.result,
+        announcement_time: formData.announcement_time
+      };
+      
+      if (isEdit) {
+        await apiService.updateResult(id, payload, token);
+      } else {
+        await apiService.publishResult(payload, token);
+      }
+      navigate(`/admin/results?date=${formData.date}`);
     } catch (err) {
-      setError('Failed to publish result');
+      console.error("Error submitting form:", err);
+      setError(isEdit ? 'Failed to update result' : 'Failed to publish result');
       setSubmitting(false);
     }
   };
@@ -474,14 +632,14 @@ const ResultForm = ({ isEdit = false }) => {
         <div className="form-group">
           <label>Team</label>
           <select 
-            name="team_id"
-            value={formData.team_id}
+            name="team"
+            value={formData.team}
             onChange={handleChange}
             required
           >
             <option value="">Select a team</option>
             {teams.map(team => (
-              <option key={team.id} value={team.id}>{team.name}</option>
+              <option key={team.name} value={team.name}>{team.name}</option>
             ))}
           </select>
         </div>
@@ -492,7 +650,7 @@ const ResultForm = ({ isEdit = false }) => {
             name="result"
             value={formData.result}
             onChange={handleChange}
-            placeholder="e.g., Win 3-2"
+            placeholder="e.g., 45"
             required
           />
         </div>
@@ -500,8 +658,18 @@ const ResultForm = ({ isEdit = false }) => {
           <label>Date</label>
           <input 
             type="date"
-            name="result_date"
-            value={formData.result_date}
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Announcement Time</label>
+          <input 
+            type="time"
+            name="announcement_time"
+            value={formData.announcement_time}
             onChange={handleChange}
             required
           />
@@ -513,7 +681,256 @@ const ResultForm = ({ isEdit = false }) => {
         >
           {submitting ? 'Saving...' : (isEdit ? 'Update Result' : 'Publish Result')}
         </button>
-        <Link to={`/results?date=${formData.result_date}`} className="btn-secondary">Cancel</Link>
+        <Link to={`/admin/results?date=${formData.date}`} className="btn-secondary">Cancel</Link>
+      </form>
+    </div>
+  );
+};
+
+// Scheduled Games Components
+const ScheduleCalendar = () => {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [scheduledGames, setScheduledGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { token } = React.useContext(AuthContext);
+  
+  useEffect(() => {
+    const fetchScheduledGames = async () => {
+      try {
+        const data = await apiService.getScheduledGames(date, token);
+        setScheduledGames(data);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch scheduled games');
+        setLoading(false);
+      }
+    };
+    
+    fetchScheduledGames();
+  }, [date, token]);
+  
+  const handleDateChange = (e) => {
+    setDate(e.target.value);
+  };
+  
+  const handleDeleteScheduledGame = async (id) => {
+    if (window.confirm('Are you sure you want to delete this scheduled game?')) {
+      try {
+        await apiService.deleteScheduledGame(id, token);
+        setScheduledGames(scheduledGames.filter(game => game.id !== id));
+      } catch (err) {
+        setError('Failed to delete scheduled game');
+      }
+    }
+  };
+  
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
+  
+  return (
+    <div className="schedule-container">
+      <h2>Scheduled Games</h2>
+      <div className="date-picker">
+        <label>Select Date: </label>
+        <input 
+          type="date" 
+          value={date}
+          onChange={handleDateChange}
+        />
+      </div>
+      
+      <div className="scheduled-games-container">
+        <h3>Games scheduled for {date}</h3>
+        <Link to={`/admin/schedule/new?date=${date}`} className="btn-primary">Schedule New Game</Link>
+        
+        {scheduledGames.length === 0 ? (
+          <p>No games scheduled for this date.</p>
+        ) : (
+          <table className="schedule-table">
+            <thead>
+              <tr>
+                <th>Home Team</th>
+                <th>Away Team</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scheduledGames.map(game => (
+                <tr key={game.id}>
+                  <td>{game.home_team_name}</td>
+                  <td>{game.away_team_name}</td>
+                  <td>{game.game_time}</td>
+                  <td>{game.status}</td>
+                  <td>
+                    <Link to={`/admin/schedule/edit/${game.id}?date=${date}`} className="btn-secondary">Edit</Link>
+                    <button 
+                      onClick={() => handleDeleteScheduledGame(game.id)} 
+                      className="btn-danger"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ScheduleForm = ({ isEdit = false }) => {
+  const [formData, setFormData] = useState({
+    home_team: '',
+    away_team: '',
+    game_date: new Date().toISOString().split('T')[0],
+    game_time: '12:00:00',
+    status: 'SCHEDULED'
+  });
+  const [teams, setTeams] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const { token } = React.useContext(AuthContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const teamsData = await apiService.getTeams(token);
+        setTeams(teamsData);
+        
+        // Set date from query params if available
+        const params = new URLSearchParams(location.search);
+        const dateParam = params.get('date');
+        if (dateParam) {
+          setFormData(prev => ({ ...prev, game_date: dateParam }));
+        }
+        
+        // If editing, fetch the scheduled game details
+        if (isEdit && id) {
+          const games = await apiService.getScheduledGames(dateParam || formData.game_date, token);
+          const game = games.find(g => g.id === parseInt(id));
+          if (game) {
+            setFormData({
+              home_team: game.home_team_id.toString(),
+              away_team: game.away_team_id.toString(),
+              game_date: game.game_date,
+              game_time: game.game_time,
+              status: game.status
+            });
+          }
+        }
+      } catch (err) {
+        setError('Failed to fetch data');
+      }
+    };
+    
+    fetchData();
+  }, [isEdit, id, token, location.search, formData.game_date]);
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    try {
+      if (isEdit) {
+        await apiService.updateScheduledGame(id, formData, token);
+      } else {
+        await apiService.createScheduledGame(formData, token);
+      }
+      navigate(`/admin/schedule?date=${formData.game_date}`);
+    } catch (err) {
+      setError(isEdit ? 'Failed to update scheduled game' : 'Failed to create scheduled game');
+      setSubmitting(false);
+    }
+  };
+  
+  return (
+    <div className="schedule-form-container">
+      <h2>{isEdit ? 'Edit Scheduled Game' : 'Schedule New Game'}</h2>
+      {error && <div className="error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Home Team</label>
+          <select 
+            name="home_team"
+            value={formData.home_team}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select home team</option>
+            {teams.map(team => (
+              <option key={team.id} value={team.id}>{team.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Away Team</label>
+          <select 
+            name="away_team"
+            value={formData.away_team}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select away team</option>
+            {teams.map(team => (
+              <option key={team.id} value={team.id}>{team.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Date</label>
+          <input 
+            type="date"
+            name="game_date"
+            value={formData.game_date}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Time</label>
+          <input 
+            type="time"
+            name="game_time"
+            value={formData.game_time}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Status</label>
+          <select
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            required
+          >
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="LIVE">Live</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+        <button 
+          type="submit" 
+          className="btn-primary" 
+          disabled={submitting}
+        >
+          {submitting ? 'Saving...' : (isEdit ? 'Update Game' : 'Schedule Game')}
+        </button>
+        <Link to={`/admin/schedule?date=${formData.game_date}`} className="btn-secondary">Cancel</Link>
       </form>
     </div>
   );
@@ -532,6 +949,7 @@ const Dashboard = () => {
       <nav className="dashboard-nav">
         <Link to="/teams" className="nav-link">Teams</Link>
         <Link to="/results" className="nav-link">Results</Link>
+        <Link to="/schedule" className="nav-link">Schedule</Link>
       </nav>
       
       <div className="dashboard-content">
@@ -542,12 +960,16 @@ const Dashboard = () => {
           <Route path="/results" element={<ResultCalendar />} />
           <Route path="/results/new" element={<ResultForm />} />
           <Route path="/results/edit/:id" element={<ResultForm isEdit={true} />} />
+          <Route path="/schedule" element={<ScheduleCalendar />} />
+          <Route path="/schedule/new" element={<ScheduleForm />} />
+          <Route path="/schedule/edit/:id" element={<ScheduleForm isEdit={true} />} />
           <Route path="/" element={<Navigate to="/teams" />} />
         </Routes>
       </div>
     </div>
   );
 };
+
 
 // Protected Route
 const ProtectedRoute = ({ children }) => {
@@ -568,7 +990,7 @@ const App = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route
-        path="/admin"
+        path="/*"
         element={
           <ProtectedRoute>
             <Dashboard />

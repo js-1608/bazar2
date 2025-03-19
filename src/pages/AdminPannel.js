@@ -1,387 +1,591 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Edit, BarChart2 } from 'lucide-react';
-// import dataService from '../services/dataService';
-import dataService from '../services/DataService';
+import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import './App.css';
 import { useParams,useNavigate,useLocation } from 'react-router-dom';
+import Home from './pages/Home';
+import TeamResults from './pages/TeamResult';
+// Auth Context
+const AuthContext = React.createContext();
 
-const AdminPanel = () => {
+const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  
+  const login = (newToken) => {
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
+  };
+  
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+  };
+  
+  return (
+    <AuthContext.Provider value={{ token, login, logout, isAuthenticated: !!token }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// API Service
+const API_URL = 'http://localhost:5500';
+
+const apiService = {
+  login: async (accessKey, password) => {
+    const response = await fetch(`${API_URL}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessKey, password })
+    });
+    console.log(accessKey);
+
+    
+    if (!response.ok) {
+      throw new Error('Login failed');
+    }
+    
+    return response.json();
+  },
+  
+  getTeams: async (token) => {
+    const response = await fetch(`${API_URL}/api/teams`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch teams');
+    }
+    
+    return response.json();
+  },
+  
+  createTeam: async (teamData, token) => {
+    const response = await fetch(`${API_URL}/api/teams`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(teamData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create team');
+    }
+    
+    return response.json();
+  },
+  
+  updateTeam: async (id, teamData, token) => {
+    const response = await fetch(`${API_URL}/api/teams/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(teamData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update team');
+    }
+    
+    return response.json();
+  },
+  
+  deleteTeam: async (id, token) => {
+    const response = await fetch(`${API_URL}/api/teams/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete team');
+    }
+    
+    return response.json();
+  },
+  
+  publishResult: async (resultData, token) => {
+    const response = await fetch(`${API_URL}/admin/results`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(resultData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to publish result');
+    }
+    
+    return response.json();
+  },
+  
+  getDailyResults: async (date, token) => {
+    const response = await fetch(`${API_URL}/api/results/daily?date=${date}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch daily results');
+    }
+    
+    return response.json();
+  }
+};
+
+// Components
+const Login = () => {
+  const [accessKey, setAccessKey] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = React.useContext(AuthContext);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const data = await apiService.login(accessKey, password);
+      login(data.token);
+      // redirection
+
+    } catch (err) {
+      setError('Invalid credentials');
+    }
+  };
+  
+  return (
+    <div className="login-container">
+      <h2>Admin Login</h2>
+      {error && <div className="error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Access Key</label>
+          <input 
+            type="text" 
+            value={accessKey} 
+            onChange={(e) => setAccessKey(e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Password</label>
+          <input 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="btn-primary">Login</button>
+      </form>
+    </div>
+  );
+};
+
+const TeamList = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const { token } = React.useContext(AuthContext);
   
-  const [selectedTeam, setSelectedTeam] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [showChartView, setShowChartView] = useState(false);
-  const [formData, setFormData] = useState({ name: '', time: '', result: '' });
-  const [dates] = useState(['2025-03-11', '2025-03-12']);
-  const [currentDate, setCurrentDate] = useState('2025-03-12');
-
-  // Fetch teams on component mount
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        setLoading(true);
-        const data = await dataService.getTeams();
+        const data = await apiService.getTeams(token);
         setTeams(data);
-        setError(null);
+        setLoading(false);
       } catch (err) {
-        setError('Failed to load teams data');
-        console.error(err);
-      } finally {
+        setError('Failed to fetch teams');
         setLoading(false);
       }
     };
-
+    
     fetchTeams();
-
-    // Subscribe to real-time updates
-    const unsubscribe = dataService.subscribeToUpdates((updatedTeams) => {
-      setTeams(updatedTeams);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  }, [token]);
+  
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this team?')) {
+      try {
+        await apiService.deleteTeam(id, token);
+        setTeams(teams.filter(team => team.id !== id));
+      } catch (err) {
+        setError('Failed to delete team');
+      }
+    }
   };
+  
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
+  
+  return (
+    <div className="team-list-container">
+      <h2>Team Management</h2>
+      <Link to="/teams/new" className="btn-primary">Add New Team</Link>
+      <table className="team-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {teams.map(team => (
+            <tr key={team.id}>
+              <td>{team.id}</td>
+              <td>{team.name}</td>
+              <td>
+                <Link to={`/teams/edit/${team.id}`} className="btn-secondary">Edit</Link>
+                <button 
+                  onClick={() => handleDelete(team.id)} 
+                  className="btn-danger"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
-  // Add new team
-  const handleAddTeam = async () => {
-    try {
-      const newTeamData = {
-        name: formData.name,
-        time: formData.time,
-        results: { 
-          [dates[0]]: '', 
-          [dates[1]]: '' 
+const TeamForm = ({ isEdit = false }) => {
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const { token } = React.useContext(AuthContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (isEdit && id) {
+      const fetchTeam = async () => {
+        try {
+          const teams = await apiService.getTeams(token);
+          const team = teams.find(t => t.id === parseInt(id));
+          if (team) {
+            setName(team.name);
+          }
+        } catch (err) {
+          setError('Failed to fetch team details');
         }
       };
       
-      await dataService.addTeam(newTeamData);
-      setFormData({ name: '', time: '', result: '' });
-      setShowAddForm(false);
-    } catch (err) {
-      setError('Failed to add team');
-      console.error(err);
+      fetchTeam();
     }
-  };
-
-  // Delete team
-  const handleDeleteTeam = async (id) => {
+  }, [isEdit, id, token]);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
     try {
-      await dataService.deleteTeam(id);
+      if (isEdit) {
+        await apiService.updateTeam(id, { name }, token);
+      } else {
+        await apiService.createTeam({ name }, token);
+      }
+      navigate('/teams');
     } catch (err) {
-      setError('Failed to delete team');
-      console.error(err);
+      setError(isEdit ? 'Failed to update team' : 'Failed to create team');
+      setSubmitting(false);
     }
   };
-
-  // Select team for editing
-  const handleSelectTeam = (team) => {
-    setSelectedTeam(team);
-    setFormData({
-      name: team.name,
-      time: team.time,
-      result: team.results[currentDate] || ''
-    });
-    setShowEditForm(true);
-    setShowChartView(false);
-  };
-
-  // Update team
-  const handleUpdateTeam = async () => {
-    try {
-      if (!selectedTeam) return;
-      
-      const updatedResults = { ...selectedTeam.results };
-      updatedResults[currentDate] = formData.result;
-      
-      const updatedTeamData = {
-        name: formData.name,
-        time: formData.time,
-        results: updatedResults
-      };
-      
-      await dataService.updateTeam(selectedTeam.id, updatedTeamData);
-      setShowEditForm(false);
-      setSelectedTeam(null);
-      setFormData({ name: '', time: '', result: '' });
-    } catch (err) {
-      setError('Failed to update team');
-      console.error(err);
-    }
-  };
-
-  // Show chart for selected team
-  const handleViewChart = (team) => {
-    setSelectedTeam(team);
-    setShowChartView(true);
-    setShowEditForm(false);
-  };
-
-  // Generate mock chart data for the selected team
-  const generateChartData = () => {
-    if (!selectedTeam) return [];
-    
-    // Generate some random data for demonstration
-    const mockData = [];
-    const currentDate = new Date();
-    
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(currentDate);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      mockData.unshift({
-        date: dateStr,
-        result: Math.floor(Math.random() * 100).toString().padStart(2, '0')
-      });
-    }
-    
-    return mockData;
-  };
-
-  if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
-  }
-
+  
   return (
-    <div className="bg-gray-100 min-h-screen p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-emerald-400 p-4 text-white text-center text-xl font-bold rounded-t-lg">
-          Bikaner Super Satta Result Admin Panel
+    <div className="team-form-container">
+      <h2>{isEdit ? 'Edit Team' : 'Add New Team'}</h2>
+      {error && <div className="error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Team Name</label>
+          <input 
+            type="text" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
+        <button 
+          type="submit" 
+          className="btn-primary" 
+          disabled={submitting}
+        >
+          {submitting ? 'Saving...' : (isEdit ? 'Update Team' : 'Create Team')}
+        </button>
+        <Link to="/teams" className="btn-secondary">Cancel</Link>
+      </form>
+    </div>
+  );
+};
+
+const ResultCalendar = () => {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [results, setResults] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { token } = React.useContext(AuthContext);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [teamsData, resultsData] = await Promise.all([
+          apiService.getTeams(token),
+          apiService.getDailyResults(date, token)
+        ]);
+        setTeams(teamsData);
+        setResults(resultsData);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch data');
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [date, token]);
+  
+  const handleDateChange = (e) => {
+    setDate(e.target.value);
+  };
+  
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="error">{error}</div>;
+  
+  return (
+    <div className="calendar-container">
+      <h2>Results Calendar</h2>
+      <div className="date-picker">
+        <label>Select Date: </label>
+        <input 
+          type="date" 
+          value={date}
+          onChange={handleDateChange}
+        />
+      </div>
+      
+      <div className="results-container">
+        <h3>Results for {date}</h3>
+        <Link to={`/results/new?date=${date}`} className="btn-primary">Add New Result</Link>
         
-        {/* Controls */}
-        <div className="bg-white p-4 mb-4 flex justify-between items-center">
-          <button 
-            className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2"
-            onClick={() => {
-              setShowAddForm(true);
-              setShowEditForm(false);
-              setShowChartView(false);
-              setFormData({ name: '', time: '', result: '' });
-            }}
-          >
-            <PlusCircle size={16} />
-            Add Team
-          </button>
-          
-          <div>
-            <select 
-              className="border p-2 rounded"
-              value={currentDate}
-              onChange={(e) => setCurrentDate(e.target.value)}
-            >
-              {dates.map(date => (
-                <option key={date} value={date}>
-                  {new Date(date).toLocaleDateString()}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        {/* Add Form */}
-        {showAddForm && (
-          <div className="bg-white p-4 mb-4 rounded shadow">
-            <h2 className="text-lg font-semibold mb-4">Add New Team</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Team Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Time</label>
-                <input
-                  type="text"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  placeholder="e.g. 02:20 AM"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button 
-                className="bg-gray-300 px-4 py-2 rounded"
-                onClick={() => setShowAddForm(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={handleAddTeam}
-              >
-                Add Team
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Edit Form */}
-        {showEditForm && selectedTeam && (
-          <div className="bg-white p-4 mb-4 rounded shadow">
-            <h2 className="text-lg font-semibold mb-4">Edit Team: {selectedTeam.name}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Team Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Time</label>
-                <input
-                  type="text"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Result for {new Date(currentDate).toLocaleDateString()}</label>
-                <input
-                  type="text"
-                  name="result"
-                  value={formData.result}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  placeholder="e.g. 61"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button 
-                className="bg-gray-300 px-4 py-2 rounded"
-                onClick={() => setShowEditForm(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-                onClick={handleUpdateTeam}
-              >
-                Update Team
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Chart View */}
-        {showChartView && selectedTeam && (
-          <div className="bg-white p-4 mb-4 rounded shadow">
-            <h2 className="text-lg font-semibold mb-4">Monthly Chart: {selectedTeam.name}</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-2 text-left">Date</th>
-                    <th className="border p-2 text-right">Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {generateChartData().map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="border p-2">{new Date(item.date).toLocaleDateString()}</td>
-                      <td className="border p-2 text-right font-bold">{item.result}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button 
-                className="bg-gray-300 px-4 py-2 rounded"
-                onClick={() => setShowChartView(false)}
-              >
-                Back to List
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Teams Table */}
-        <div className="bg-white rounded-b-lg overflow-hidden">
-          <table className="w-full border-collapse">
+        {results.length === 0 ? (
+          <p>No results for this date.</p>
+        ) : (
+          <table className="results-table">
             <thead>
-              <tr className="bg-gray-800 text-white">
-                <th className="p-3 text-left">Games List</th>
-                <th className="p-3 text-center">
-                  {new Date(dates[0]).toLocaleDateString()} <br/>
-                  {new Date(dates[0]).toLocaleDateString("en-US", {weekday: 'short'})}
-                </th>
-                <th className="p-3 text-center">
-                  {new Date(dates[1]).toLocaleDateString()} <br/>
-                  {new Date(dates[1]).toLocaleDateString("en-US", {weekday: 'short'})}
-                </th>
-                <th className="p-3 text-center">Actions</th>
+              <tr>
+                <th>Team</th>
+                <th>Result</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {teams.map(team => (
-                <tr key={team.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">
-                    <div className="font-semibold">{team.name}</div>
-                    <div className="text-sm text-gray-500">at {team.time}</div>
-                  </td>
-                  <td className="p-3 text-center text-2xl font-bold">{team.results[dates[0]] || 'XX'}</td>
-                  <td className="p-3 text-center text-2xl font-bold">{team.results[dates[1]] || 'XX'}</td>
-                  <td className="p-3">
-                    <div className="flex justify-center gap-2">
-                      <button 
-                        className="p-2 bg-blue-100 text-blue-600 rounded"
-                        onClick={() => handleSelectTeam(team)}
-                        title="Edit Team"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        className="p-2 bg-red-100 text-red-600 rounded"
-                        onClick={() => handleDeleteTeam(team.id)}
-                        title="Delete Team"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                      <button 
-                        className="p-2 bg-green-100 text-green-600 rounded"
-                        onClick={() => handleViewChart(team)}
-                        title="View Monthly Chart"
-                      >
-                        <BarChart2 size={16} />
-                      </button>
-                    </div>
+              {results.map(result => (
+                <tr key={result.id}>
+                  <td>{result.team}</td>
+                  <td>{result.result}</td>
+                  <td>
+                    <Link to={`/results/edit/${result.id}?date=${date}`} className="btn-secondary">Edit</Link>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default AdminPanel;
+const ResultForm = ({ isEdit = false }) => {
+  const [formData, setFormData] = useState({
+    team: '',
+    result: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [teams, setTeams] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const { token } = React.useContext(AuthContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const teamsData = await apiService.getTeams(token);
+        setTeams(teamsData);
+        
+        // Set date from query params if available
+        const params = new URLSearchParams(location.search);
+        const dateParam = params.get('date');
+        if (dateParam) {
+          setFormData(prev => ({ ...prev, date: dateParam }));
+        }
+        
+        // If editing, fetch the result details
+        if (isEdit && id) {
+          // This is a simplified approach. In a real app, you'd have an API endpoint to fetch a specific result
+          const results = await apiService.getDailyResults(dateParam, token);
+          const result = results.find(r => r.id === parseInt(id));
+          console.log(result.team);
+          if (result) {
+            console.log(result)
+            setFormData({
+              team: result.team,
+              result: result.result,
+              date: result.date
+            });
+          }
+        }
+      } catch (err) {
+        setError('Failed to fetch data');
+      }
+    };
+    
+    fetchTeams();
+  }, [isEdit, id, token, location.search]);
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    try {
+      await apiService.publishResult(formData, token);
+      navigate(`/results?date=${formData.date}`);
+    } catch (err) {
+      setError('Failed to publish result');
+      setSubmitting(false);
+    }
+  };
+  
+  return (
+    <div className="result-form-container">
+      <h2>{isEdit ? 'Edit Result' : 'Add New Result'}</h2>
+      {error && <div className="error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Team</label>
+          <select 
+            name="team"
+            value={formData.team}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select a team</option>
+            {teams.map(team => (
+              <option key={team.id} value={team.id}>{team.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Result</label>
+          <input 
+            type="text"
+            name="result"
+            value={formData.result}
+            onChange={handleChange}
+            placeholder="e.g., Win 3-2"
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Date</label>
+          <input 
+            type="date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <button 
+          type="submit" 
+          className="btn-primary" 
+          disabled={submitting}
+        >
+          {submitting ? 'Saving...' : (isEdit ? 'Update Result' : 'Publish Result')}
+        </button>
+        <Link to={`/results?date=${formData.date}`} className="btn-secondary">Cancel</Link>
+      </form>
+    </div>
+  );
+};
+
+const Dashboard = () => {
+  const { logout } = React.useContext(AuthContext);
+  
+  return (
+    <div className="dashboard-container">
+      <header className="dashboard-header">
+        <h1>Admin Dashboard</h1>
+        <button onClick={logout} className="btn-danger">Logout</button>
+      </header>
+      
+      <nav className="dashboard-nav">
+        <Link to="/teams" className="nav-link">Teams</Link>
+        <Link to="/results" className="nav-link">Results</Link>
+      </nav>
+      
+      <div className="dashboard-content">
+        <Routes>
+          <Route path="/teams" element={<TeamList />} />
+          <Route path="/teams/new" element={<TeamForm />} />
+          <Route path="/teams/edit/:id" element={<TeamForm isEdit={true} />} />
+          <Route path="/results" element={<ResultCalendar />} />
+          <Route path="/results/new" element={<ResultForm />} />
+          <Route path="/results/edit/:id" element={<ResultForm isEdit={true} />} />
+          <Route path="/" element={<Navigate to="/teams" />} />
+        </Routes>
+      </div>
+    </div>
+  );
+};
+
+// Protected Route
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = React.useContext(AuthContext);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
+
+// App
+const App = () => {
+  return (
+     <Router>
+  <AuthProvider>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Home />} />
+      <Route path="/res" element={<TeamResults />} />
+    </Routes>
+  </AuthProvider>
+</Router>
+
+    );
+};
+
+export default App;
