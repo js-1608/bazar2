@@ -388,7 +388,7 @@ const ResultCalendar = () => {
               {results.map(result => (
                 <tr key={result.id}>
                   <td>{result.team}</td>
-                  <td>{result.result}</td>
+                  <td>{result.visible_result}</td>
                   <td>
                     <Link to={`/results/edit/${result.id}?date=${date}`} className="btn-secondary">Edit</Link>
                   </td>
@@ -439,7 +439,7 @@ const ResultForm = ({ isEdit = false }) => {
             console.log(result)
             setFormData({
               team: result.team,
-              result: result.result,
+              result: result.visible_result,
               date: result.date
             });
           }

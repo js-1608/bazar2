@@ -125,6 +125,8 @@ const apiService = {
       console.error("Server responded with error:", response.status, errorData);
       console.log("Sending exact payload:", JSON.stringify(resultData));
      throw new Error(`Failed to publish result: ${response.status}`);
+    }else{
+      console.log("Response is ok")
     }
     
     return response.json();
@@ -520,7 +522,7 @@ const ResultCalendar = () => {
               <tr>
                 <th>Team</th>
                 <th>Result</th>
-                <th>Announcement Time</th>
+                <th>Result Time</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -528,8 +530,8 @@ const ResultCalendar = () => {
               {results.map(result => (
                 <tr key={result.id}>
                   <td>{result.team}</td>
-                  <td>{result.result}</td>
-                  <td>{result.announcement_time}</td>
+                  <td>{result.visible_result}</td>
+                  <td>{new Date(result.result_time).toISOString().split('T').join(" ").replace("Z", "").slice(0, -4)}</td>
                   <td>
                     <Link to={`/admin/results/edit/${result.id}?date=${date}`} className="btn-secondary">Edit</Link>
                     <button 
@@ -584,9 +586,8 @@ const ResultForm = ({ isEdit = false }) => {
           if (result) {
             setFormData({
               team: result.team_id.toString(),
-              result: result.result,
-              date: result.result_date,
-              announcement_time: result.announcement_time
+              result: result.visible_result,
+              result_time: result.result_time
             });
           }
         }
@@ -610,9 +611,8 @@ const ResultForm = ({ isEdit = false }) => {
     try {
       const payload = {
         team: formData.team, // This should be the team ID
-        date: formData.date,
         result: formData.result,
-        announcement_time: formData.announcement_time
+        result_time: formData.date + " " + formData.result_time
       };
       
       if (isEdit) {
@@ -669,11 +669,11 @@ const ResultForm = ({ isEdit = false }) => {
           />
         </div>
         <div className="form-group">
-          <label>Announcement Time</label>
+          <label>Result Time</label>
           <input 
             type="time"
-            name="announcement_time"
-            value={formData.announcement_time}
+            name="result_time"
+            value={formData.result_time}
             onChange={handleChange}
             required
           />

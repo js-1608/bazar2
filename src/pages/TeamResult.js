@@ -27,7 +27,7 @@ const TeamResults = () => {
         const sanitizedData = data.map((team) => ({
           ...team,
           name: sanitizeString(team.name),
-          announcement_time: team.announcement_time || "N/A", // Handle missing time
+          result_time: team.result_time || "N/A", // Handle missing time
           results: team.results || {} // Ensure results exist
         }));
 
@@ -53,7 +53,7 @@ const TeamResults = () => {
         {teams.map((team) => (
           <div key={team.id} className="border p-4 rounded-md shadow-md">
             <h3 className="text-lg font-semibold">{team.name}</h3>
-            <p className="text-sm text-gray-600">Time: {team.announcement_time}</p>
+            <p className="text-sm text-gray-600">Time: {team.result_time}</p>
 
             <div className="mt-2">
               <h4 className="font-semibold">Results:</h4>

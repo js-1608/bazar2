@@ -62,7 +62,7 @@ const Home2 = () => {
           // Add today's result if available
           const todayResult = todayResultsResponse.data.find(r => r.team === team.name);
           if (todayResult) {
-            results[todayFormatted] = todayResult.result;
+            results[todayFormatted] = todayresult.visible_result;
           }
           
           // Extract time from team name or use default
@@ -187,7 +187,7 @@ const Home2 = () => {
         
         if (dayData && dayData.results.length > 0) {
           dayData.results.forEach(result => {
-            teamResults[result.team] = result.result;
+            teamResults[result.team] = result.visible_result;
           });
         }
         

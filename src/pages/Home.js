@@ -59,18 +59,19 @@ const Home = () => {
             results[yesterdayFormatted] = yesterdayResults[index].result;
           }
           
-          // Add today's result if available
-          const todayResult = todayResultsResponse.data.find(r => r.team === team.name);
-          if (todayResult) {
-            results[todayFormatted] = todayResult.result;
-          }
-          
-          // Extract time from team name or use default
-          let time = "XX:XX";
-          const timePart = team.name.match(/\d{2}:\d{2}\s*(?:AM|PM)/i);
-          if (timePart) {
-            time = timePart[0];
-          }
+            // Add today's result if available
+            const todayResult = todayResultsResponse.data.find(r => r.team === team.name);
+            if (todayResult) {
+            console.log("test 1: " + todayResult.visible_result);
+            results[todayFormatted] = todayResult.visible_result;
+            }
+
+            // Extract time from today's result or use default
+            let time = "XX:XX";
+            if (todayResult && todayResult.result_time) {
+            const resultTime = new Date(todayResult.result_time);
+            time = resultTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
+            }
           
           return {
             id: team.id,
@@ -187,7 +188,7 @@ const Home = () => {
         
         if (dayData && dayData.results.length > 0) {
           dayData.results.forEach(result => {
-            teamResults[result.team] = result.result;
+            teamResults[result.team] = result.visible_result;
           });
         }
         
