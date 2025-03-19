@@ -490,7 +490,11 @@ const ResultCalendar = () => {
   };
   
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="error">{error}</div>;
+  if (error) return <div className="error"><div>
+          <Link to={`/results/new`} className="btn-primary">Add New Result</Link>
+          </div>
+    {error}
+    </div>;
   
   return (
     <div className="calendar-container">
