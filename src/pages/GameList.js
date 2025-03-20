@@ -5,6 +5,14 @@ import TodaysMatch from './TodaysMatch';
 import Today from './Today';
 import Header from './Header';
 import Footer from './Footer';
+import { 
+  formatTimeIST, 
+  formatResult, 
+  getIndianDates,
+  isTimeInFutureIST,
+  formatDateIST,
+  TIMEZONE
+} from '../utils/dateUtils';
 
 const GameList = () => {
   const [teams, setTeams] = useState([]);
@@ -22,25 +30,14 @@ const GameList = () => {
   // API URL
   const API_URL = 'http://localhost:5500/api';
 
-  // Format time
+  // Format time using IST
   const formatTime = (timeString) => {
-    try {
-      const date = new Date(timeString);
-      return date.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch (e) {
-      return "XX:XX";
-    }
+    return formatTimeIST(timeString);
   };
 
-  // Check if a match is upcoming
+  // Check if a match is upcoming using IST
   const isUpcoming = (resultTime) => {
-    try {
-      const now = new Date();
-      const matchTime = new Date(resultTime);
-      return matchTime > now;
-    } catch (e) {
-      return false;
-    }
+    return isTimeInFutureIST(resultTime);
   };
 
   // Fetch teams data
@@ -52,14 +49,8 @@ const GameList = () => {
         // Get all teams
         const teamsResponse = await axios.get(`${API_URL}/teams`);
 
-        // Get today's date and format it
-        const today = new Date();
-        const todayFormatted = today.toISOString().split('T')[0];
-
-        // Get yesterday's date and format it
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayFormatted = yesterday.toISOString().split('T')[0];
+        // Get today's and yesterday's dates in IST
+        const { today: todayFormatted, yesterday: yesterdayFormatted } = getIndianDates();
 
         // Set dates for display
         setDates([yesterdayFormatted, todayFormatted]);
@@ -85,14 +76,16 @@ const GameList = () => {
           // Create result arrays for both days
           const yesterdayResultsArr = yesterdayTeamResults.map(r => ({
             result: r.visible_result,
-            time: formatTime(r.result_time)
+            time: formatTime(r.result_time),
+            isPending: r.visible_result === '-1'
           }));
 
           const todayResultsArr = todayTeamResults
             .filter(r => !isUpcoming(r.result_time))
             .map(r => ({
               result: r.visible_result,
-              time: formatTime(r.result_time)
+              time: formatTime(r.result_time),
+              isPending: r.visible_result === '-1'
             }));
 
           // Extract latest scheduled time
@@ -127,16 +120,16 @@ const GameList = () => {
 
     fetchData();
 
-    // Update current time every minute
+    // Update current time every minute using IST
     const interval = setInterval(() => {
       const now = new Date();
-      const formattedTime = now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+      const formattedTime = now.toLocaleString("en-IN", { timeZone: TIMEZONE });
       setCurrentTime(formattedTime);
     }, 60000);
 
-    // Set initial time
+    // Set initial time in IST
     const now = new Date();
-    const formattedTime = now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const formattedTime = now.toLocaleString("en-IN", { timeZone: TIMEZONE });
     setCurrentTime(formattedTime);
 
     return () => clearInterval(interval);
@@ -146,10 +139,12 @@ const GameList = () => {
 const handleViewChart = async (team) => {
   try {
     setLoading(true);
-    // Get monthly results for the selected team
-    const currentDate = new Date();
-    const month = currentDate.getMonth() + 1;
-    const year = currentDate.getFullYear();
+    
+    // Get current date in IST
+    const options = { timeZone: TIMEZONE };
+    const currentDateIST = new Date(new Date().toLocaleString('en-US', options));
+    const month = currentDateIST.getMonth() + 1;
+    const year = currentDateIST.getFullYear();
     
     const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
     
@@ -162,10 +157,18 @@ const handleViewChart = async (team) => {
     
     console.log("API Response:", response.data);
     
-    // Keep the original data structure
+    // Process the data to ensure date parts are available
+    const processedData = response.data.map(item => ({
+      ...item,
+      // Extract date part from result_time for display
+      result_date: item.result_time ? item.result_time.split(' ')[0] : null,
+      // Use visible_result as the result (may be named differently in API response)
+      result: item.visible_result || item.result || '-'
+    }));
+    
     setSelectedTeam({
       ...team,
-      chartData: response.data
+      chartData: processedData
     });
     
     setShowChartView(true);
@@ -288,15 +291,30 @@ const handleViewChart = async (team) => {
     window.location.reload();
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  // Format date for display using IST with timezone correction
+const formatDate = (dateString) => {
+  try {
+    if (!dateString) return "";
+
+    // Parse the YYYY-MM-DD date string
+    const [year, month, day] = dateString.split('-').map(Number);
+    
+    // Create date in local timezone (will be converted to IST in formatter)
+    const date = new Date(year, month - 1, day);
+    
+    // Format with IST timezone
+    return date.toLocaleDateString('en-US', {
+      timeZone: TIMEZONE,
       weekday: 'short',
       month: 'long',
       day: 'numeric',
       year: 'numeric'
     });
-  };
+  } catch (e) {
+    console.error("Date formatting error:", e);
+    return dateString;
+  }
+};
 
   return (
     <div className="bg-gray-200 min-h-screen">
@@ -391,14 +409,21 @@ const handleViewChart = async (team) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedTeam.chartData && selectedTeam.chartData.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="border border-gray-300 p-2">{new Date(item.result_date).toLocaleDateString()}</td>
-                      <td className="border border-gray-300 p-2 text-center">{formatTime(item.result_time)}</td>
-                      <td className="border border-gray-300 p-2 text-right font-bold">{item.result}</td>
-                    </tr>
-                  ))}
-                  {(!selectedTeam.chartData || selectedTeam.chartData.length === 0) && (
+                  {selectedTeam.chartData && selectedTeam.chartData.length > 0 ? (
+                    selectedTeam.chartData.map((item, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="border border-gray-300 p-2">
+                          {item.result_date ? new Date(item.result_date).toLocaleDateString() : "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          {item.result_time ? formatTime(item.result_time) : "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-right font-bold">
+                          {formatResult(item.result)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
                     <tr>
                       <td colSpan="3" className="border border-gray-300 p-2 text-center">No chart data available</td>
                     </tr>
@@ -475,7 +500,9 @@ const handleViewChart = async (team) => {
                               {teamResult.results.map((r, j) => (
                                 <div key={j} className="text-xs flex justify-between">
                                   <span className="text-gray-500">{r.time}</span>
-                                  <span className="font-bold">{r.result}</span>
+                                  <span className={`font-bold ${r.result === '-1' ? 'text-gray-500' : ''}`}>
+                                    {formatResult(r.result)}
+                                  </span>
                                 </div>
                               ))}
                             </div>
@@ -509,10 +536,10 @@ const handleViewChart = async (team) => {
                 <tr className="bg-black text-white">
                   <th className="p-3 text-left">Games List</th>
                   <th className="p-3 text-center">
-                    {dates.length > 0 && new Date(dates[0]).toLocaleDateString('en-US', { weekday: 'short' })} {dates.length > 0 && new Date(dates[0]).getDate()}th
+                    {dates.length > 0 && formatDate(dates[0])}
                   </th>
                   <th className="p-3 text-center">
-                    {dates.length > 1 && new Date(dates[1]).toLocaleDateString('en-US', { weekday: 'short' })} {dates.length > 1 && new Date(dates[1]).getDate()}th
+                    {dates.length > 1 && formatDate(dates[1])}
                   </th>
                   <th className="p-3 text-center">Chart</th>
                 </tr>
@@ -531,7 +558,9 @@ const handleViewChart = async (team) => {
                         <div className="flex flex-col gap-1">
                           {team.results[dates[0]].map((result, idx) => (
                             <div key={idx} className="flex flex-col">
-                              <span className="text-2xl font-bold">{result.result}</span>
+                              <span className={`text-2xl font-bold ${result.isPending ? 'text-gray-500' : ''}`}>
+                                {formatResult(result.result)}
+                              </span>
                               <span className="text-xs text-gray-500">{result.time}</span>
                             </div>
                           ))}
@@ -546,7 +575,9 @@ const handleViewChart = async (team) => {
                         <div className="flex flex-col gap-1">
                           {team.results[dates[1]].map((result, idx) => (
                             <div key={idx} className="flex flex-col">
-                              <span className="text-2xl font-bold">{result.result}</span>
+                              <span className={`text-2xl font-bold ${result.isPending ? 'text-gray-500' : ''}`}>
+                                {formatResult(result.result)}
+                              </span>
                               <span className="text-xs text-gray-500">{result.time}</span>
                             </div>
                           ))}
