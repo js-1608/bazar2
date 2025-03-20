@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BarChart2, Calendar, RefreshCw, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import TodaysMatch from './TodaysMatch';
+import Footer from './Footer';
+import Header from './Header';
 
 const Home2 = () => {
   const [teams, setTeams] = useState([]);
@@ -302,6 +304,7 @@ const Home2 = () => {
 
   return (
     <div className="bg-gray-200 min-h-screen">
+      <Header/>
       <div className="w-full bg-white p-4 text-center text-white">
         {/* Header */}
         <h1 className="text-3xl md:text-4xl font-bold uppercase text-red-600">
@@ -351,55 +354,7 @@ const Home2 = () => {
         <TodaysMatch />
       </div>
 
-
-
-      <div className="w-full bg-white text-black">
-        {/* FAQ Section */}
-        <div className="max-w-6xl mx-auto py-6">
-          {faqs.map((faq, index) => (
-            <div key={index} className="mb-2">
-              <button
-                className="w-full bg-red-600 text-white text-lg font-semibold py-3 px-4 flex justify-between items-center rounded-md"
-                onClick={() => toggleFAQ(index)}
-              >
-                {faq.question}
-                <span>{openIndex === index ? "▲" : "▼"}</span>
-              </button>
-              {openIndex === index && (
-                <div className="p-4 bg-gray-100 border border-gray-300">
-                  {faq.answer}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Footer Section */}
-        <footer className="bg-white border-t py-6 text-center">
-          <div className="max-w-3xl mx-auto text-gray-600 text-sm">
-            <p className="font-bold text-xl text-black flex items-center justify-center">
-              MATKA <span className="text-red-600"> SATTA</span>
-            </p>
-            <p className="mt-2">
-              The Multi-State Lottery Association makes every effort to ensure the
-              accuracy of winning numbers and other information. Official winning
-              numbers are those selected in the respective drawings and recorded
-              under the observation of an independent accounting firm.
-            </p>
-            <p className="mt-2">
-              In the event of a discrepancy, the official drawing results shall
-              prevail. All winning tickets must be redeemed in the
-              state/jurisdiction in which they are sold.
-            </p>
-            <p className="mt-4 flex justify-center space-x-4 text-black font-semibold">
-              <span>Media Center</span>
-              <span>Legal</span>
-              <span>Privacy</span>
-              <span>español</span>
-            </p>
-          </div>
-        </footer>
-      </div>
+<Footer/>
     </div>
   );
 };

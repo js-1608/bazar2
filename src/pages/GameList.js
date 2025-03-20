@@ -3,6 +3,8 @@ import { BarChart2, Calendar, RefreshCw, Clock, ChevronLeft, ChevronRight } from
 import axios from 'axios';
 import TodaysMatch from './TodaysMatch';
 import Today from './Today';
+import Header from './Header';
+import Footer from './Footer';
 
 const GameList = () => {
   const [teams, setTeams] = useState([]);
@@ -141,33 +143,41 @@ const GameList = () => {
   }, []);
 
   // Show chart for selected team
-  const handleViewChart = async (team) => {
-    try {
-      setLoading(true);
-      // Get monthly results for the selected team
-      const currentDate = new Date();
-      const month = currentDate.getMonth() + 1;
-      const year = currentDate.getFullYear();
-
-      const response = await axios.post(`${API_URL}/results/monthly`, {
-        team: team.name,
-        month: `${year}-${month.toString().padStart(2, '0')}`
-      });
-
-      setSelectedTeam({
-        ...team,
-        chartData: response.data
-      });
-
-      setShowChartView(true);
-      setShowCalendar(false);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching chart data:", err);
-      setError("Failed to load chart data. Please try again later.");
-      setLoading(false);
-    }
-  };
+const handleViewChart = async (team) => {
+  try {
+    setLoading(true);
+    // Get monthly results for the selected team
+    const currentDate = new Date();
+    const month = currentDate.getMonth() + 1;
+    const year = currentDate.getFullYear();
+    
+    const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
+    
+    console.log("Fetching chart data for:", team.name, "Month:", monthStr);
+    
+    const response = await axios.post(`${API_URL}/results/monthly`, {
+      team: team.name,
+      month: monthStr
+    });
+    
+    console.log("API Response:", response.data);
+    
+    // Keep the original data structure
+    setSelectedTeam({
+      ...team,
+      chartData: response.data
+    });
+    
+    setShowChartView(true);
+    setShowCalendar(false);
+    setLoading(false);
+  } catch (err) {
+    console.error("Error fetching chart data:", err);
+    setError("Failed to load chart data: " + (err.response?.data?.message || err.message));
+    setLoading(false);
+    setShowChartView(false);
+  }
+};
 
   // Load calendar data
   const loadCalendarData = async (year, month) => {
@@ -288,21 +298,9 @@ const GameList = () => {
     });
   };
 
-
-    const [openIndex, setOpenIndex] = useState(null);
-  
-    const toggleFAQ = (index) => {
-      setOpenIndex(openIndex === index ? null : index);
-    };
-  
-    const faqs = [
-      { question: "HOW TO PLAY", answer: "Details about how to play." },
-      { question: "WHERE TO PLAY", answer: "Information on where to play." },
-      { question: "WINNING NUMBERS EMAIL", answer: "Sign up for emails." },
-    ];
-
   return (
     <div className="bg-gray-200 min-h-screen">
+      <Header/>
   
 
       <div className="max-w-6xl mx-auto p-4">
@@ -322,14 +320,14 @@ const GameList = () => {
           <div className="text-lg font-semibold text-gray-800 mb-2 md:mb-0">Latest Results</div>
 
           <div className="flex gap-2">
-            <button
+            {/* <button
               className="bg-black text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-gray-800 transition"
               onClick={handleCalendarView}
               disabled={loading}
             >
               <Calendar size={16} />
               Calendar View
-            </button>
+            </button> */}
             <button
               className="bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-red-700 transition"
               onClick={handleRefresh}
@@ -383,7 +381,7 @@ const GameList = () => {
         {!loading && showChartView && selectedTeam && (
           <div className="bg-white p-4 mb-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-4 text-red-600">Monthly Chart: {selectedTeam.name}</h2>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto"> 
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-black text-white">
@@ -585,54 +583,7 @@ const GameList = () => {
           </div>
         )}
       </div>
-
-      <div className="w-full bg-white text-black">
-        {/* FAQ Section */}
-        <div className="max-w-6xl mx-auto py-6">
-          {faqs.map((faq, index) => (
-            <div key={index} className="mb-2">
-              <button
-                className="w-full bg-red-600 text-white text-lg font-semibold py-3 px-4 flex justify-between items-center rounded-md"
-                onClick={() => toggleFAQ(index)}
-              >
-                {faq.question}
-                <span>{openIndex === index ? "▲" : "▼"}</span>
-              </button>
-              {openIndex === index && (
-                <div className="p-4 bg-gray-100 border border-gray-300">
-                  {faq.answer}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Footer Section */}
-        <footer className="bg-white border-t py-6 text-center">
-          <div className="max-w-3xl mx-auto text-gray-600 text-sm">
-            <p className="font-bold text-xl text-black flex items-center justify-center">
-              MATKA <span className="text-red-600"> SATTA</span>
-            </p>
-            <p className="mt-2">
-              The Multi-State Lottery Association makes every effort to ensure the
-              accuracy of winning numbers and other information. Official winning
-              numbers are those selected in the respective drawings and recorded
-              under the observation of an independent accounting firm.
-            </p>
-            <p className="mt-2">
-              In the event of a discrepancy, the official drawing results shall
-              prevail. All winning tickets must be redeemed in the
-              state/jurisdiction in which they are sold.
-            </p>
-            <p className="mt-4 flex justify-center space-x-4 text-black font-semibold">
-              <span>Media Center</span>
-              <span>Legal</span>
-              <span>Privacy</span>
-              <span>español</span>
-            </p>
-          </div>
-        </footer>
-      </div>
+      <Footer/>
     </div>
   );
 };

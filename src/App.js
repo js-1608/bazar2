@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import TeamResults from './pages/TeamResult';
 import Home2 from './pages/Home2';
 import GameList from './pages/GameList';
+import Faq from './pages/Faq';
 
 // Auth Context
 const AuthContext = React.createContext();
@@ -1059,8 +1060,10 @@ const App = () => {
             }
           />
           <Route path="/" element={<Home2 />} />
-          <Route path="/results" element={<GameList />} />
+          <Route path="/games" element={<GameList />} />
           <Route path="/res" element={<TeamResults />} />
+          <Route path="/faq" element={<Faq />} />
+
         </Routes>
       </AuthProvider>
     </Router>

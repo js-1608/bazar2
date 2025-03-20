@@ -49,13 +49,13 @@ const TeamResults = () => {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Game Results</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="w-1/3">
         {teams.map((team) => (
           <div key={team.id} className="border p-4 rounded-md shadow-md">
             <h3 className="text-lg font-semibold">{team.name}</h3>
-            <p className="text-sm text-gray-600">Time: {team.result_time}</p>
+            {/* <p className="text-sm text-gray-600">Time: {team.result_time}</p> */}
 
-            <div className="mt-2">
+            {/* <div className="mt-2">
               <h4 className="font-semibold">Results:</h4>
               {Object.keys(team.results).length > 0 ? (
                 <ul className="list-disc pl-4">
@@ -68,7 +68,7 @@ const TeamResults = () => {
               ) : (
                 <p className="text-gray-500">No results available</p>
               )}
-            </div>
+            </div> */}
           </div>
         ))}
       </div>

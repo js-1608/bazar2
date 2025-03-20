@@ -29,6 +29,8 @@ const Home2 = () => {
     }
   };
 
+  
+
   // Check if a match is upcoming
   const isUpcoming = (resultTime) => {
     try {
