@@ -307,22 +307,22 @@ const Home2 = () => {
       <Header/>
       <div className="w-full bg-white p-4 text-center text-white">
         {/* Header */}
-        <h1 className="text-3xl md:text-4xl font-bold uppercase text-red-600">
+        {/* <h1 className="text-3xl md:text-4xl font-bold uppercase text-red-600">
           <img
             src="./logo.PNG"
             alt="Advertisement"
             className="w-28 h-30 m-auto"
           />
-        </h1>
+        </h1> */}
 
         {/* Advertisement Banner */}
-        <div className="mt-4 flex justify-center items- border w-full lg:w-3/4 m-auto">
+        {/* <div className="mt-4 flex justify-center items- border w-full lg:w-3/4 m-auto">
           <img
             src="./add.png"
             alt="Advertisement"
             className="w-auto max-w-4xl h-14"
           />
-        </div>
+        </div> */}
 
         {/* Informational Text */}
         <p className="mt-4 text-black text-sm p-1 w-full lg:w-3/4 m-auto">

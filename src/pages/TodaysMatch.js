@@ -267,19 +267,19 @@ const TodaysMatch = () => {
       {/* Winners Box */}
       <div className="bg-gray-200 rounded-lg shadow-lg overflow-hidden w-full md:w-1/3">
         <div className="bg-white p-4 rounded-t-lg">
-          <h2 className="text-center font-bold text-xl text-gray-800">Winners</h2>
+          <h2 className="text-center font-bold text-xl text-gray-800">Todays match</h2>
         </div>
         <div className="p-4 text-center">
-          <h3 className="font-medium text-lg mb-4">Wed, Mar 19, 2025</h3>
+          <h3 className="font-medium text-lg mb-4">Wed, Mar 21, 2025</h3>
           
           <div className="text-center mb-4">
-            <div className="font-bold">POWERBALL</div>
+            <div className="font-bold">Team Alpha</div>
             <div className="text-2xl font-bold">JACKPOT WINNERS</div>
             <div className="text-red-600 text-xl">None</div>
           </div>
           
           <div className="text-center mb-4">
-            <div className="font-bold">MATCH 5 + POWER PLAY</div>
+            <div className="font-bold">Team Beta</div>
             <div className="text-2xl font-bold">$2 MILLION WINNERS</div>
             <div className="text-red-600 text-xl">CO, TX</div>
           </div>

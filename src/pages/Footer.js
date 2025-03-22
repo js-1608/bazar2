@@ -14,8 +14,15 @@ const Footer = () => {
                         <p className="font-bold text-xl text-black flex items-center justify-center">
                             MATKA <span className="text-red-600"> SATTA</span>
                         </p>
+                              <h1 className="text-3xl md:text-4xl font-bold uppercase text-red-600">
+                                <img
+                                    src="./logo.PNG"
+                                    alt="Advertisement"
+                                    className="w-28 h-30 m-auto"
+                                />
+                                </h1>
                         <p className="mt-2">
-                            The Multi-State Lottery Association makes every effort to ensure the
+                            The Multi-State  Association makes every effort to ensure the
                             accuracy of winning numbers and other information. Official winning
                             numbers are those selected in the respective drawings and recorded
                             under the observation of an independent accounting firm.

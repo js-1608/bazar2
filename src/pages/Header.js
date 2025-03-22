@@ -6,20 +6,20 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="bg-gray-600 text-white">
+    <header className="bg-[#182633] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <Link to="/" className="text-2xl font-bold"> <img
             src="./logo.PNG"
             alt="Advertisement"
-            className="w-12 h-30 m-auto"
+            className=" h-24 m-auto"
           /></Link>
 
           {/* Desktop Menu */}
           <nav className="hidden md:flex space-x-6">
-            <Link to="/faq" className="hover:text-gray-200 transition">FAQs</Link>
-            <Link to="/games" className="hover:text-gray-200 transition">Results</Link>
+          <Link to="/games" className="hover:text-gray-200 transition">Results</Link>   
+            <Link to="/" className="hover:text-gray-200 transition">FAQs</Link>
           </nav>
 
           {/* Mobile Menu Button */}
