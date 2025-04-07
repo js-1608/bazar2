@@ -7,7 +7,8 @@ import TeamResults from './pages/TeamResult';
 import Home2 from './pages/Home2';
 import GameList from './pages/GameList';
 import Faq from './pages/Faq';
-
+import MatkaResultsDashboard from './pages/Today';
+import Homenew from './User/Home';
 // Auth Context
 const AuthContext = React.createContext();
 
@@ -1046,8 +1047,11 @@ const ProtectedRoute = ({ children }) => {
 
 // App
 const App = () => {
+  
+  
   return (
     <Router>
+      
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -1060,8 +1064,12 @@ const App = () => {
             }
           />
           <Route path="/" element={<Home2 />} />
+          <Route path="/user" element={<Homenew/>}/>
+
           <Route path="/games" element={<GameList />} />
           <Route path="/res" element={<TeamResults />} />
+          <Route path="/monthlyChart" element={<MatkaResultsDashboard />} />
+
           <Route path="/faq" element={<Faq />} />
 
         </Routes>

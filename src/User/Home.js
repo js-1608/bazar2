@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart2, Calendar, RefreshCw, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
-import TodaysMatch from './TodaysMatch';
 import Footer from './Footer';
 import Header from './Header';
-import Translate from '../Translate';
+import Translate from './Translate';
+import HeroSection from './Herosection';
 
-const Home2 = () => {
-  const [teams, setTeams] = useState([]);
-  const [dates, setDates] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState(null);
-  const [showChartView, setShowChartView] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [currentTime, setCurrentTime] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [calendarData, setCalendarData] = useState([]);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+const Home = () => {
+
+   const [teams, setTeams] = useState([]);
+    const [dates, setDates] = useState([]);
+    const [selectedTeam, setSelectedTeam] = useState(null);
+    const [showChartView, setShowChartView] = useState(false);
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [currentTime, setCurrentTime] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [calendarData, setCalendarData] = useState([]);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
   const [upcomingMatches, setUpcomingMatches] = useState([]);
+
 
   // API URL
   const API_URL = 'http://localhost:5500/api';
@@ -142,166 +144,6 @@ const Home2 = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Show chart for selected team
-  const handleViewChart = async (team) => {
-    try {
-      setLoading(true);
-      // Get monthly results for the selected team
-      const currentDate = new Date();
-      const month = currentDate.getMonth() + 1;
-      const year = currentDate.getFullYear();
-
-      const response = await axios.post(`${API_URL}/results/monthly`, {
-        team: team.name,
-        month: `${year}-${month.toString().padStart(2, '0')}`
-      });
-
-      setSelectedTeam({
-        ...team,
-        chartData: response.data
-      });
-
-      setShowChartView(true);
-      setShowCalendar(false);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching chart data:", err);
-      setError("Failed to load chart data. Please try again later.");
-      setLoading(false);
-    }
-  };
-
-  // Load calendar data
-  const loadCalendarData = async (year, month) => {
-    try {
-      setLoading(true);
-
-      // Calculate first and last day of month
-      const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
-      const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
-
-      // Get results for each day in the month
-      const dailyResultsPromises = [];
-      const currentDate = new Date(year, month, 1);
-      const lastDate = new Date(year, month + 1, 0);
-
-      while (currentDate <= lastDate) {
-        const dateString = currentDate.toISOString().split('T')[0];
-        dailyResultsPromises.push(
-          axios.get(`${API_URL}/results/daily?date=${dateString}`)
-            .then(response => ({
-              date: dateString,
-              results: response.data
-            }))
-            .catch(() => ({
-              date: dateString,
-              results: []
-            }))
-        );
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      const allResults = await Promise.all(dailyResultsPromises);
-
-      // Format calendar data
-      const calendarDays = [];
-      const firstDayOfMonth = new Date(year, month, 1);
-      const firstDayWeekday = firstDayOfMonth.getDay();
-
-      // Add empty cells for days before the first of the month
-      for (let i = 0; i < firstDayWeekday; i++) {
-        calendarDays.push(null);
-      }
-
-      // Add days with results
-      for (let i = 1; i <= lastDate.getDate(); i++) {
-        const dateObj = new Date(year, month, i);
-        const dateStr = dateObj.toISOString().split('T')[0];
-
-        const dayData = allResults.find(r => r.date === dateStr);
-        let dayResults = [];
-
-        if (dayData && dayData.results.length > 0) {
-          // Group by team
-          const teamResults = {};
-
-          dayData.results.forEach(result => {
-            if (!teamResults[result.team]) {
-              teamResults[result.team] = [];
-            }
-            teamResults[result.team].push({
-              result: result.visible_result,
-              time: formatTime(result.result_time)
-            });
-          });
-
-          // Create an array for display
-          dayResults = Object.entries(teamResults).map(([team, results]) => ({
-            team,
-            results
-          }));
-        }
-
-        calendarDays.push({
-          day: i,
-          date: dateStr,
-          results: dayResults
-        });
-      }
-
-      setCalendarData(calendarDays);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error loading calendar data:", err);
-      setError("Failed to load calendar data. Please try again later.");
-      setLoading(false);
-    }
-  };
-
-  // Handle calendar view button click
-  const handleCalendarView = () => {
-    const now = new Date();
-    setCurrentMonth(now);
-    loadCalendarData(now.getFullYear(), now.getMonth());
-    setShowCalendar(true);
-    setShowChartView(false);
-  };
-
-  // Handle month change in calendar
-  const handleMonthChange = (increment) => {
-    const newMonth = new Date(currentMonth);
-    newMonth.setMonth(newMonth.getMonth() + increment);
-    setCurrentMonth(newMonth);
-    loadCalendarData(newMonth.getFullYear(), newMonth.getMonth());
-  };
-
-  // Refresh data
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-
-  const [openIndex, setOpenIndex] = useState(null);
-
-  const toggleFAQ = (index) => {
-    setOpenIndex(openIndex === index ? null : index);
-  };
-
-  const faqs = [
-    { question: "HOW TO PLAY", answer: "Details about how to play." },
-    { question: "WHERE TO PLAY", answer: "Information on where to play." },
-    { question: "WINNING NUMBERS EMAIL", answer: "Sign up for emails." },
-  ];
 
   return (
     <div className="bg-gray-200 min-h-screen">
@@ -354,7 +196,7 @@ const Home2 = () => {
       </div>
       <div className="max-w-6xl mx-auto p-4">
 
-        <TodaysMatch />
+        <HeroSection />
       </div>
 
       <Footer />
@@ -362,4 +204,4 @@ const Home2 = () => {
   );
 };
 
-export default Home2;
+export default Home;

@@ -143,41 +143,78 @@ const GameList = () => {
   }, []);
 
   // Show chart for selected team
-const handleViewChart = async (team) => {
-  try {
-    setLoading(true);
-    // Get monthly results for the selected team
-    const currentDate = new Date();
-    const month = currentDate.getMonth() + 1;
-    const year = currentDate.getFullYear();
-    
-    const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
-    
-    console.log("Fetching chart data for:", team.name, "Month:", monthStr);
-    
-    const response = await axios.post(`${API_URL}/results/monthly`, {
-      team: team.name,
-      month: monthStr
-    });
-    
-    console.log("API Response:", response.data);
-    
-    // Keep the original data structure
-    setSelectedTeam({
-      ...team,
-      chartData: response.data
-    });
-    
-    setShowChartView(true);
-    setShowCalendar(false);
-    setLoading(false);
-  } catch (err) {
-    console.error("Error fetching chart data:", err);
-    setError("Failed to load chart data: " + (err.response?.data?.message || err.message));
-    setLoading(false);
-    setShowChartView(false);
-  }
-};
+  const handleViewChart = async (team) => {
+    try {
+      setLoading(true);
+      // Get monthly results for the selected team
+      const currentDate = new Date();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+
+      const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
+
+      console.log("Fetching chart data for:", team.name, "Month:", monthStr);
+
+      const response = await axios.post(`${API_URL}/results/monthly`, {
+        team: team.name,
+        month: monthStr
+      });
+
+      console.log("API Response:", response.data);
+
+      // Process data to group by date - handle multiple results per day
+      const processedData = [];
+      const resultsMap = new Map();
+
+      if (Array.isArray(response.data)) {
+        // Group results by date
+        response.data.forEach(item => {
+          if (!item.result_date) return;
+
+          const dateKey = new Date(item.result_date).toISOString().split('T')[0];
+
+          if (!resultsMap.has(dateKey)) {
+            resultsMap.set(dateKey, []);
+          }
+
+          resultsMap.get(dateKey).push({
+            result_date: item.result_date,
+            result_time: item.result_time,
+            result: item.visible_result || item.result
+          });
+        });
+
+        // Convert map to array and sort by date
+        resultsMap.forEach((dayResults, dateKey) => {
+          // Sort results by time for each day
+          dayResults.sort((a, b) => new Date(a.result_time) - new Date(b.result_time));
+
+          // Add each result to the processed data
+          dayResults.forEach(result => {
+            processedData.push(result);
+          });
+        });
+
+        // Sort the final array by date
+        processedData.sort((a, b) => new Date(a.result_date) - new Date(b.result_date));
+      }
+
+      // Keep the original data structure but use processed data
+      setSelectedTeam({
+        ...team,
+        chartData: processedData.length > 0 ? processedData : response.data
+      });
+
+      setShowChartView(true);
+      setShowCalendar(false);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching chart data:", err);
+      setError("Failed to load chart data: " + (err.response?.data?.message || err.message));
+      setLoading(false);
+      setShowChartView(false);
+    }
+  };
 
   // Load calendar data
   const loadCalendarData = async (year, month) => {
@@ -298,10 +335,32 @@ const handleViewChart = async (team) => {
     });
   };
 
+  // Group chart data by date for display
+  const getGroupedChartData = () => {
+    if (!selectedTeam || !selectedTeam.chartData || !Array.isArray(selectedTeam.chartData)) {
+      return [];
+    }
+
+    const groupedData = new Map();
+
+    selectedTeam.chartData.forEach(item => {
+      if (!item.result_date) return;
+
+      const dateKey = new Date(item.result_date).toISOString().split('T')[0];
+
+      if (!groupedData.has(dateKey)) {
+        groupedData.set(dateKey, []);
+      }
+
+      groupedData.get(dateKey).push(item);
+    });
+
+    return groupedData;
+  };
+
   return (
     <div className="bg-gray-200 min-h-screen">
-      <Header/>
-  
+      <Header />
 
       <div className="max-w-6xl mx-auto p-4">
         {error && (
@@ -309,10 +368,10 @@ const handleViewChart = async (team) => {
             <p>{error}</p>
           </div>
         )}
-        <Today/>
+        <Today />
 
         <div className="bg-red-600 p-4 text-white text-center text-xl font-bold rounded-t-lg shadow-lg">
-           Satta Result of {dates.length > 1 && formatDate(dates[1])} & {dates.length > 0 && formatDate(dates[0])}
+          Satta Result of {dates.length > 1 && formatDate(dates[1])} & {dates.length > 0 && formatDate(dates[0])}
         </div>
 
         {/* Controls */}
@@ -320,14 +379,6 @@ const handleViewChart = async (team) => {
           <div className="text-lg font-semibold text-gray-800 mb-2 md:mb-0">Latest Results</div>
 
           <div className="flex gap-2">
-            {/* <button
-              className="bg-black text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-gray-800 transition"
-              onClick={handleCalendarView}
-              disabled={loading}
-            >
-              <Calendar size={16} />
-              Calendar View
-            </button> */}
             <button
               className="bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-red-700 transition"
               onClick={handleRefresh}
@@ -377,11 +428,11 @@ const handleViewChart = async (team) => {
           </div>
         )}
 
-        {/* Chart View */}
+        {/* Chart View - FIXED TO HANDLE MULTIPLE RESULTS PER DAY */}
         {!loading && showChartView && selectedTeam && (
           <div className="bg-white p-4 mb-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-4 text-red-600">Monthly Chart: {selectedTeam.name}</h2>
-            <div className="overflow-x-auto"> 
+            <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-black text-white">
@@ -391,14 +442,21 @@ const handleViewChart = async (team) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedTeam.chartData && selectedTeam.chartData.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="border border-gray-300 p-2">{new Date(item.result_date).toLocaleDateString()}</td>
-                      <td className="border border-gray-300 p-2 text-center">{formatTime(item.result_time)}</td>
-                      <td className="border border-gray-300 p-2 text-right font-bold">{item.result}</td>
-                    </tr>
-                  ))}
-                  {(!selectedTeam.chartData || selectedTeam.chartData.length === 0) && (
+                  {selectedTeam.chartData && selectedTeam.chartData.length > 0 ? (
+                    selectedTeam.chartData.map((item, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="border border-gray-300 p-2">
+                          {item.result_time ? new Date(item.result_time).toLocaleDateString() : "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          {item.result_time ? formatTime(item.result_time) : "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-right font-bold">
+                          {item.visible_result || item.result || "N/A"}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
                     <tr>
                       <td colSpan="3" className="border border-gray-300 p-2 text-center">No chart data available</td>
                     </tr>
@@ -462,8 +520,8 @@ const handleViewChart = async (team) => {
                   {day && (
                     <>
                       <div className={`text-right text-sm font-medium ${new Date().toISOString().split('T')[0] === day.date ?
-                          'bg-red-600 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center ml-auto' :
-                          'text-gray-700'
+                        'bg-red-600 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center ml-auto' :
+                        'text-gray-700'
                         }`}>
                         {day.day}
                       </div>
@@ -522,7 +580,6 @@ const handleViewChart = async (team) => {
                   <tr key={team.id} className="border-b hover:bg-gray-50">
                     <td className="p-3">
                       <div className="font-semibold text-red-600">{team.name}</div>
-                      <div className="text-sm text-gray-500">at {team.time}</div>
                       <div className="text-xs text-black underline mt-1 cursor-pointer hover:text-red-600" onClick={() => handleViewChart(team)}>Record Chart</div>
                     </td>
 
@@ -583,7 +640,89 @@ const handleViewChart = async (team) => {
           </div>
         )}
       </div>
-      <Footer/>
+      <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg ">
+        {/* Section 7 */}
+        <section className="mb-10">
+          <div className="border-l-4 border-red-600 pl-4">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Expert Matka Satta Daily Tips for 2025</h2>
+          </div>
+
+          <div className="mt-4 bg-gray-50 p-6 rounded-lg">
+            <p className="mb-3">Here are some expert tips to improve your Matka Satta game:</p>
+
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0 mt-0.5">1</span>
+                <span><strong>Follow the Charts:</strong> Use daily charts to identify patterns and trends.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0 mt-0.5">2</span>
+                <span><strong>Analyze Historical Data:</strong> Study past results to predict future outcomes.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0 mt-0.5">3</span>
+                <span><strong>Use Expert Tips:</strong> Follow our daily tips and strategies for better results.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0 mt-0.5">4</span>
+                <span><strong>Stay Updated:</strong> Check our platform for live updates and accurate results.</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <hr className="my-8 border-gray-200" />
+
+        {/* Section 8 */}
+        <section className="mb-10">
+          <div className="border-l-4 border-red-600 pl-4">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Matka Satta Daily Chart for 2025</h2>
+          </div>
+
+          <div className="mt-4 bg-gray-50 p-6 rounded-lg">
+            <p className="leading-relaxed">
+              Our <strong className="text-green-600">Matka Satta daily chart</strong> provides historical data and trends
+              for all major games, including Desawar, Delhi Bazar, Shri Ganesh, Faridabad, Ghaziabad,
+              and Gali Matka. Use the chart to improve your guessing accuracy and win more often.
+            </p>
+
+            {/* Sample chart preview */}
+            <div className="mt-6 bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium">Popular Matka Games</h3>
+                <span className="text-sm text-gray-500">Last Updated: March 24, 2025</span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {["Desawar", "Delhi Bazar", "Shri Ganesh", "Faridabad", "Ghaziabad", "Gali Matka"].map((game) => (
+                  <div key={game} className="p-3 bg-blue-50 rounded border border-blue-100 text-center">
+                    <p className="font-medium text-blue-700">{game}</p>
+                    {/* <p className="text-sm text-gray-600 mt-1">View Chart</p> */}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <hr className="my-8 border-gray-200" />
+
+        {/* Conclusion */}
+        {/* <section className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-4">Conclusion</h2>
+          <p className="leading-relaxed">
+            At <strong>Matka Satta Daily.com</strong>, we provide accurate results, expert tips, and daily charts
+            for all major Matka games. Whether you're looking for Desawar Matka results at 5:00 AM or
+            Gali Matka results at 11:30 PM, we've got you covered. Stay ahead of the game with our
+            live updates and expert strategies.
+          </p>
+
+        </section> */}
+      </div>
+      <br></br>
+      <Footer />
     </div>
   );
 };

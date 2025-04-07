@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Clock, ChevronDown, ChevronUp, Calendar, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
 
 const MatkaResultsDashboard = () => {
   const [todaysResults, setTodaysResults] = useState([]);
@@ -9,45 +8,49 @@ const MatkaResultsDashboard = () => {
   const [currentDate, setCurrentDate] = useState('');
   const [expandedTeams, setExpandedTeams] = useState({});
 
-  // API URL
-  const API_URL = 'http://localhost:5500/api';
-
-  // Matka team descriptions and tips
-  const matkaTeamInfo = {
-    "Desawar Matka": {
+  // Matka teams and their scheduled times
+  const matkaTeams = [
+    {
+      team: "Desawar Matka",
+      time: "5:00 AM",
       description: "Start your day with the latest Desawar Matka results at 5:00 AM. Our platform provides real-time updates and accurate results to help you stay ahead.",
       tip: "Analyze the Desawar Matka chart to identify patterns and trends for better predictions."
     },
-    "Delhi Bazar Matka": {
+    {
+      team: "Delhi Bazar Matka",
+      time: "3:00 PM",
       description: "Get the Delhi Bazar Matka results at 3:00 PM every day. Our live updates ensure you never miss a result.",
       tip: "Follow the Delhi Bazar Matka chart to track historical results and predict future outcomes."
     },
-    "Shri Ganesh Matka": {
+    {
+      team: "Shri Ganesh Matka",
+      time: "4:30 PM",
       description: "Stay updated with the Shri Ganesh Matka results at 4:30 PM. Our platform offers live updates, daily charts, and expert tips to help you make the right decisions.",
       tip: "Use the Shri Ganesh Matka chart to analyze trends and improve your guessing accuracy."
     },
-    "Faridabad Matka": {
+    {
+      team: "Faridabad Matka",
+      time: "6:00 PM", 
       description: "The Faridabad Matka results are declared at 6:00 PM every day. Check our platform for live updates, daily charts, and expert tips.",
       tip: "Combine historical data with our expert tips for better predictions."
     },
-    "Ghaziabad Matka": {
+    {
+      team: "Ghaziabad Matka",
+      time: "9:30 PM",
       description: "Get the latest Ghaziabad Matka results at 9:30 PM. Our platform provides real-time updates, daily charts, and expert tips to help you stay ahead.",
       tip: "Follow the Ghaziabad Matka chart to identify patterns and trends."
     },
-    "Gali Matka": {
+    {
+      team: "Gali Matka",
+      time: "11:30 PM",
       description: "End your day with the Gali Matka results at 11:30 PM. Our platform offers live updates, daily charts, and expert tips to help you make informed decisions.",
       tip: "Use the Gali Matka chart to track historical results and improve your guessing accuracy."
     }
-  };
+  ];
 
   // Format time
   const formatTime = (timeString) => {
-    try {
-      const date = new Date(timeString);
-      return date.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch (e) {
-      return "XX:XX";
-    }
+    return timeString;
   };
 
   // Toggle team expansion
@@ -58,9 +61,9 @@ const MatkaResultsDashboard = () => {
     }));
   };
 
-  // Fetch today's results
+  // Generate mock results based on current time
   useEffect(() => {
-    const fetchTodaysResults = async () => {
+    const generateMockResults = () => {
       try {
         setLoading(true);
         
@@ -73,56 +76,53 @@ const MatkaResultsDashboard = () => {
           year: 'numeric'
         }));
         
-        // Get today's results from API
-        const todayResultsResponse = await axios.get(`${API_URL}/today`);
-        const todayResults = todayResultsResponse.data;
-        
-        // Group by team
-        const teamResults = {};
-        
-        todayResults.forEach(result => {
-          if (!teamResults[result.team]) {
-            teamResults[result.team] = [];
-          }
-          teamResults[result.team].push({
-            result: result.visible_result,
-            time: formatTime(result.result_time),
-            timestamp: new Date(result.result_time),
-            upcoming: new Date(result.result_time) > new Date(),
-            description: matkaTeamInfo[result.team]?.description || "Stay updated with the latest results.",
-            tip: matkaTeamInfo[result.team]?.tip || "Check regularly for updates and follow trends."
-          });
-        });
-        
-        // Convert to array for display and initialize expanded state
-        const groupedResults = Object.entries(teamResults).map(([team, results]) => {
-          // Sort by time
-          const sortedResults = results.sort((a, b) => a.timestamp - b.timestamp);
+        // Generate mock results for each team
+        const results = matkaTeams.map(teamData => {
+          // Parse the time
+          const [hours, minutes] = teamData.time.split(':');
+          const ampm = teamData.time.includes('PM') ? 'PM' : 'AM';
+          const hour = parseInt(hours) + (ampm === 'PM' && parseInt(hours) !== 12 ? 12 : 0);
           
-          // Set all teams expanded by default
-          setExpandedTeams(prev => ({
-            ...prev,
-            [team]: true
-          }));
+          // Create timestamp for today with the result time
+          const resultTime = new Date();
+          resultTime.setHours(hour, parseInt(minutes), 0);
+          
+          // Generate random result for completed games
+          const isUpcoming = resultTime > today;
+          const result = isUpcoming ? null : `${Math.floor(Math.random() * 100)}-${Math.floor(Math.random() * 10)}`;
           
           return {
-            team,
-            results: sortedResults,
-            upcomingCount: sortedResults.filter(r => r.upcoming).length,
-            completedCount: sortedResults.filter(r => !r.upcoming).length
+            team: teamData.team,
+            results: [{
+              result,
+              time: teamData.time,
+              timestamp: resultTime,
+              upcoming: isUpcoming,
+              description: teamData.description,
+              tip: teamData.tip
+            }],
+            upcomingCount: isUpcoming ? 1 : 0,
+            completedCount: isUpcoming ? 0 : 1
           };
         });
         
-        setTodaysResults(groupedResults);
+        // Set all teams expanded by default
+        const expandedState = {};
+        matkaTeams.forEach(team => {
+          expandedState[team.team] = true;
+        });
+        setExpandedTeams(expandedState);
+        
+        setTodaysResults(results);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching today's results:", err);
-        setError("Failed to load today's Matka data. Please try again later.");
+        console.error("Error generating mock results:", err);
+        setError("Failed to load today's match data. Please try again later.");
         setLoading(false);
       }
     };
     
-    fetchTodaysResults();
+    generateMockResults();
   }, []);
 
   // Refresh data
@@ -130,51 +130,31 @@ const MatkaResultsDashboard = () => {
     setLoading(true);
     setError(null);
     
-    const fetchData = async () => {
-      try {
-        // Get today's results from API
-        const todayResultsResponse = await axios.get(`${API_URL}/today`);
-        const todayResults = todayResultsResponse.data;
+    // Generate new mock results
+    setTimeout(() => {
+      const today = new Date();
+      
+      // Update results - simulate some changes
+      const updatedResults = todaysResults.map(teamData => {
+        const resultTime = new Date(teamData.results[0].timestamp);
+        const isUpcoming = resultTime > today;
+        const result = isUpcoming ? null : `${Math.floor(Math.random() * 100)}-${Math.floor(Math.random() * 10)}`;
         
-        // Group by team
-        const teamResults = {};
-        
-        todayResults.forEach(result => {
-          if (!teamResults[result.team]) {
-            teamResults[result.team] = [];
-          }
-          teamResults[result.team].push({
-            result: result.visible_result,
-            time: formatTime(result.result_time),
-            timestamp: new Date(result.result_time),
-            upcoming: new Date(result.result_time) > new Date(),
-            description: matkaTeamInfo[result.team]?.description || "Stay updated with the latest results.",
-            tip: matkaTeamInfo[result.team]?.tip || "Check regularly for updates and follow trends."
-          });
-        });
-        
-        // Convert to array for display
-        const groupedResults = Object.entries(teamResults).map(([team, results]) => {
-          // Sort by time
-          const sortedResults = results.sort((a, b) => a.timestamp - b.timestamp);
-          
-          return {
-            team,
-            results: sortedResults,
-            upcomingCount: sortedResults.filter(r => r.upcoming).length,
-            completedCount: sortedResults.filter(r => !r.upcoming).length
-          };
-        });
-        
-        setTodaysResults(groupedResults);
-        setLoading(false);
-      } catch (err) {
-        setError("Failed to refresh Matka data. Please try again later.");
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
+        return {
+          ...teamData,
+          results: [{
+            ...teamData.results[0],
+            result,
+            upcoming: isUpcoming
+          }],
+          upcomingCount: isUpcoming ? 1 : 0,
+          completedCount: isUpcoming ? 0 : 1
+        };
+      });
+      
+      setTodaysResults(updatedResults);
+      setLoading(false);
+    }, 1000);
   };
 
   // Get status badge
@@ -211,7 +191,7 @@ const MatkaResultsDashboard = () => {
       <div className="bg-gray-50 p-4 flex justify-between items-center border-b">
         <div className="text-sm font-medium text-gray-500">
           {todaysResults.length > 0 ? 
-            `${todaysResults.length} teams with results today` : 
+            `${todaysResults.length} Matka results today` : 
             "No results scheduled"}
         </div>
         <button
@@ -263,7 +243,7 @@ const MatkaResultsDashboard = () => {
                     <div className="font-bold text-lg">{teamData.team}</div>
                     <div className="flex items-center space-x-4">
                       <div className="text-xs bg-opacity-20 bg-white px-2 py-1 rounded-full">
-                        <span className="font-medium">{teamData.upcomingCount}</span> upcoming • <span className="font-medium">{teamData.completedCount}</span> completed
+                        {teamData.results[0].time}
                       </div>
                       {expandedTeams[teamData.team] ? (
                         <ChevronUp size={20} />

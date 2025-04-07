@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Clock, ChevronRight, ChevronLeft } from 'lucide-react';
 import axios from 'axios';
-import TeamMatchTable from './Teams';
+import TeamTime from './TeamTime';
 
-const TodaysMatch = () => {
+const HeroSection = () => {
   const [todaysMatches, setTodaysMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -283,11 +283,11 @@ const TodaysMatch = () => {
             <div className="text-2xl font-bold">$1 MILLION WINNERS</div>
             <div className="text-red-600 text-xl">None</div>
           </div> */}
-          <TeamMatchTable/>
+          <TeamTime/>
         </div>
       </div>
     </div>
   );
 };
 
-export default TodaysMatch;
+export default HeroSection;

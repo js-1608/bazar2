@@ -16,13 +16,13 @@ import { useState } from 'react';
 
 	return (
 	  <>
-        <div className="w-full bg-white text-black">
+        <div className="w-full bg-white text-black ">
         {/* FAQ Section */}
-        <div className="max-w-6xl mx-auto py-6">
+        <div className="max-w-6xl  p-12">
           {faqs.map((faq, index) => (
-            <div key={index} className="m-4">
+            <div key={index} className=" m-4">
               <button
-                className="w-full bg-red-600 text-white text-lg font-semibold py-3 px-4 flex justify-between items-center rounded-md"
+                className=" bg-red-600 text-white text-lg font-semibold py-3 px-4 flex justify-between items-center rounded-md m-2"
                 onClick={() => toggleFAQ(index)}
               >
                 {faq.question}

@@ -5,36 +5,8 @@ import { Link } from "react-router-dom";
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Add this effect to your App.js or index.js instead
-  /*
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-    script.async = true;
-    document.body.appendChild(script);
-    
-    window.googleTranslateElementInit = () => {
-      new window.google.translate.TranslateElement(
-        { pageLanguage: 'en', includedLanguages: 'en,hi' },
-        'google_translate_element'
-      );
-    };
-    
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-  */
-
   return (
     <>
-      {/* Translation Bar */}
-      {/* <div className="bg-gray-800 text-white py-2">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div id="google_translate_element"></div>
-        </div>
-      </div> */}
-
       {/* Header */}
       <header className="bg-[#182633] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,7 +16,7 @@ export default function Header() {
               <img
                 src="./logo.PNG"
                 alt="Advertisement"
-                className="h-28 m-auto"
+                className="h-24 m-auto"
               />
             </Link>
 
