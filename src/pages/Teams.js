@@ -2,11 +2,11 @@ import { useState } from "react";
 
 const TeamMatchTable = () => {
   const [teams, setTeams] = useState([
-    { name: "GALI MATKA", time: "6:00 PM" },
-    { name: "GHAZIABAD MATKA", time: "4:00 PM" },
-    { name: "FARIDABAD MATKA", time: "12:30 PM" },
-    { name: "SHRI GANESH MATKA", time: "11:00 AM" },
-    { name: "DELHI BAZAR MATKA", time: "9:30 AM" },
+    { name: "GALI MATKA", time: "11:30 PM" },
+    { name: "GHAZIABAD MATKA", time: "9:30 PM" },
+    { name: "FARIDABAD MATKA", time: "6:00 PM" },
+    { name: "SHRI GANESH MATKA", time: "4:30 PM" },
+    { name: "DELHI BAZAR MATKA", time: "3:00 PM" },
     { name: "DESAWAR MATKA", time: "5:00 AM" },
   ]);
 

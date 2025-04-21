@@ -452,7 +452,10 @@ const GameList = () => {
                           {item.result_time ? formatTime(item.result_time) : "N/A"}
                         </td>
                         <td className="border border-gray-300 p-2 text-right font-bold">
-                          {item.visible_result || item.result || "N/A"}
+                          {item.visible_result === '-1' || item.result === '-1'
+                            ? "Yet to Announce"
+                            : (item.visible_result || item.result || "N/A")
+                          }
                         </td>
                       </tr>
                     ))

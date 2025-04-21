@@ -245,3 +245,60 @@
       font-size: 14px;
     }
   }
+
+
+
+
+  /* 1. Remove background, borders from the outer Google gadget */
+.goog-te-gadget {
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 14px !important;
+  color: white !important;
+}
+
+/* 2. Customize the translate dropdown box */
+.goog-te-gadget-simple {
+  background-color: #1f2937 !important; /* dark background */
+  border: 1px solid #4b5563 !important; /* gray border */
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* 3. Customize the select language text inside */
+.goog-te-gadget-simple span {
+  font-size: 14px !important;
+  color: white !important;
+  margin-right: 5px !important;
+}
+
+/* 4. Customize hover effect */
+.goog-te-gadget-simple:hover {
+  background-color: #374151 !important; /* slightly lighter on hover */
+}
+
+/* 5. Hide the default Google icon if you want */
+.goog-te-gadget-icon {
+  display: none !important;
+}
+
+/* 6. Adjust the down arrow color */
+.goog-te-gadget-simple span[aria-hidden="true"] {
+  color: #d1d5db !important; /* light gray arrow */
+  margin-left: 4px !important;
+}
+
+/* 7. Prevent weird border inside dropdown */
+.skiptranslate {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: none !important;
+}
+
+/* 8. Remove unwanted clear dots or extra images */
+.goog-te-gadget img {
+  display: none !important;
+}

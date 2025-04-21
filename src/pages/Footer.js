@@ -1,13 +1,9 @@
 import React from 'react';
-import Faq from './Faq';
 const Footer = () => {
 
     return (
         <>
             <div className="w-full bg-white text-black">
-                {/* FAQ Section */}
-                <Faq />
-
                 {/* Footer Section */}
                 <footer className="bg-white border-t py-6 text-center">
                     <div className="max-w-3xl mx-auto text-gray-600 text-sm">

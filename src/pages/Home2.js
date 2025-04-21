@@ -4,7 +4,6 @@ import axios from 'axios';
 import TodaysMatch from './TodaysMatch';
 import Footer from './Footer';
 import Header from './Header';
-import Translate from '../Translate';
 
 const Home2 = () => {
   const [teams, setTeams] = useState([]);
@@ -305,7 +304,7 @@ const Home2 = () => {
 
   return (
     <div className="bg-gray-200 min-h-screen">
-      <Translate/>
+
       <Header />
       <div className="w-full bg-white p-4 text-center text-white">
         {/* Header */}
