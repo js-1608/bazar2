@@ -12,7 +12,7 @@ import FaqPage from './pages/FaqPage';
 const App = () => {
   return (
     <Router>
-      <Translate/>
+      {/* <Translate/> */}
       <Routes>
         
         <Route path="/" element={<Home2 />} />
