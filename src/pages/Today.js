@@ -120,7 +120,7 @@ const MatkaResultsDashboard = () => {
 
   useEffect(() => {
     fetchTodaysResults();
-  }, []);
+  }, [fetchTodaysResults]); // Add the dependency
 
   const handleRefresh = () => {
     fetchTodaysResults();
