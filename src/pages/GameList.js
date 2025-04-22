@@ -51,76 +51,87 @@ const GameList = () => {
 
         // Get all teams
         const teamsResponse = await axios.get(`${API_URL}/teams`);
+        
+        // Handle the specific error case where the API returns an error message
+        if (teamsResponse.data && teamsResponse.data.error === "No teams found.") {
+          console.log("API returned: No teams found");
+          setError("No teams data is currently available. Please try again later.");
+          setTeams([]);
+        } 
+        else if (Array.isArray(teamsResponse.data)) {
+          // Get today's date and format it
+          const today = new Date();
+          const todayFormatted = today.toISOString().split('T')[0];
 
-        // Get today's date and format it
-        const today = new Date();
-        const todayFormatted = today.toISOString().split('T')[0];
+          // Get yesterday's date and format it
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayFormatted = yesterday.toISOString().split('T')[0];
 
-        // Get yesterday's date and format it
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayFormatted = yesterday.toISOString().split('T')[0];
+          // Set dates for display
+          setDates([yesterdayFormatted, todayFormatted]);
 
-        // Set dates for display
-        setDates([yesterdayFormatted, todayFormatted]);
+          // Get today's results
+          const todayResultsResponse = await axios.get(`${API_URL}/results/daily?date=${todayFormatted}`);
+          const todayResults = todayResultsResponse.data;
 
-        // Get today's results
-        const todayResultsResponse = await axios.get(`${API_URL}/results/daily?date=${todayFormatted}`);
-        const todayResults = todayResultsResponse.data;
+          // Get yesterday's results
+          const yesterdayResultsResponse = await axios.get(`${API_URL}/results/daily?date=${yesterdayFormatted}`);
+          const yesterdayResults = yesterdayResultsResponse.data;
 
-        // Get yesterday's results
-        const yesterdayResultsResponse = await axios.get(`${API_URL}/results/daily?date=${yesterdayFormatted}`);
-        const yesterdayResults = yesterdayResultsResponse.data;
+          // Process upcoming matches
+          const upcoming = todayResults.filter(result => isUpcoming(result.result_time));
+          setUpcomingMatches(upcoming);
 
-        // Process upcoming matches
-        const upcoming = todayResults.filter(result => isUpcoming(result.result_time));
-        setUpcomingMatches(upcoming);
+          // Combine team data with results
+          const teamsWithResults = teamsResponse.data.map(team => {
+            // Get all results for this team
+            const yesterdayTeamResults = yesterdayResults.filter(r => r.team === team.name);
+            const todayTeamResults = todayResults.filter(r => r.team === team.name);
 
-        // Combine team data with results
-        const teamsWithResults = teamsResponse.data.map(team => {
-          // Get all results for this team
-          const yesterdayTeamResults = yesterdayResults.filter(r => r.team === team.name);
-          const todayTeamResults = todayResults.filter(r => r.team === team.name);
-
-          // Create result arrays for both days
-          const yesterdayResultsArr = yesterdayTeamResults.map(r => ({
-            result: r.visible_result,
-            time: formatTime(r.result_time)
-          }));
-
-          const todayResultsArr = todayTeamResults
-            .filter(r => !isUpcoming(r.result_time))
-            .map(r => ({
+            // Create result arrays for both days
+            const yesterdayResultsArr = yesterdayTeamResults.map(r => ({
               result: r.visible_result,
               time: formatTime(r.result_time)
             }));
 
-          // Extract latest scheduled time
-          let latestTime = "XX:XX";
-          const latestTodayResult = todayTeamResults
-            .sort((a, b) => new Date(b.result_time) - new Date(a.result_time))
-            .find(r => r.result_time);
+            const todayResultsArr = todayTeamResults
+              .filter(r => !isUpcoming(r.result_time))
+              .map(r => ({
+                result: r.visible_result,
+                time: formatTime(r.result_time)
+              }));
 
-          if (latestTodayResult) {
-            latestTime = formatTime(latestTodayResult.result_time);
-          }
+            // Extract latest scheduled time
+            let latestTime = "XX:XX";
+            const latestTodayResult = todayTeamResults
+              .sort((a, b) => new Date(b.result_time) - new Date(a.result_time))
+              .find(r => r.result_time);
 
-          return {
-            id: team.id,
-            name: team.name,
-            time: latestTime,
-            results: {
-              [yesterdayFormatted]: yesterdayResultsArr,
-              [todayFormatted]: todayResultsArr
+            if (latestTodayResult) {
+              latestTime = formatTime(latestTodayResult.result_time);
             }
-          };
-        });
 
-        setTeams(teamsWithResults);
-        setLoading(false);
+            return {
+              id: team.id,
+              name: team.name,
+              time: latestTime,
+              results: {
+                [yesterdayFormatted]: yesterdayResultsArr,
+                [todayFormatted]: todayResultsArr
+              }
+            };
+          });
+
+          setTeams(teamsWithResults);
+        } else {
+          console.error("Error: teamsResponse.data is not an array", teamsResponse.data);
+          setError(`Failed to load team data: Invalid data format received from server. Expected an array but got ${typeof teamsResponse.data}.`);
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to load team data. Please try again later.");
+      } finally {
         setLoading(false);
       }
     };
