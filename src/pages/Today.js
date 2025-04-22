@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Clock, ChevronDown, ChevronUp, Calendar, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
@@ -61,7 +61,7 @@ const MatkaResultsDashboard = () => {
     }));
   };
 
-  const fetchTodaysResults = async () => {
+  const fetchTodaysResults = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -116,11 +116,11 @@ const MatkaResultsDashboard = () => {
       setError("Failed to load today's Matka data. Please try again later.");
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array
 
   useEffect(() => {
     fetchTodaysResults();
-  }, []);
+  }, [fetchTodaysResults]); // Now safe to include
 
   const handleRefresh = () => {
     fetchTodaysResults();

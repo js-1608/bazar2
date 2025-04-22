@@ -170,7 +170,7 @@ const TodaysMatch = () => {
           </div>
           <div className="flex flex-col gap-2">
             <a href="#" className="bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700 transition">CALL NOW</a>
-            <a href="#" className="bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition">WHATSAPP NOW</a>
+            <a href="https://wa.me/yournumber" className="bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition">WHATSAPP NOW</a>
           </div>
         </div>
       </div>
