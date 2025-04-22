@@ -15,7 +15,7 @@ const Home = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // API URL
-  const API_URL = 'http://localhost:5500/api';
+  const API_URL = 'https://backend.matkasattadaily.com/api';
 
   // Fetch teams data
   useEffect(() => {

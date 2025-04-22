@@ -11,7 +11,7 @@ const TodaysMatch = () => {
   const [currentDate, setCurrentDate] = useState('');
 
   // API URL (from environment variable)
-  const API_URL = "http://localhost:5500/api";
+  const API_URL = "https://backend.matkasattadaily.com/api";
 
   // Format time function
   const formatTime = (timeString) => {

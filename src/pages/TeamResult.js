@@ -15,7 +15,7 @@ const TeamResults = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("http://localhost:5500/api/teams");
+        const response = await fetch("https://backend.matkasattadaily.com/api/teams");
 
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);

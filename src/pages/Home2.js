@@ -19,7 +19,7 @@ const Home2 = () => {
   const [upcomingMatches, setUpcomingMatches] = useState([]);
 
   // API URL
-  const API_URL = 'http://localhost:5500/api';
+  const API_URL = 'https://backend.matkasattadaily.com/api';
 
   // Format time
   const formatTime = (timeString) => {
