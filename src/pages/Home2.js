@@ -4,6 +4,8 @@ import axios from 'axios';
 import TodaysMatch from './TodaysMatch';
 import Footer from './Footer';
 import Header from './Header';
+import GameList from './GameList';
+import Today from './Today';
 
 const Home2 = () => {
   const [teams, setTeams] = useState([]);
@@ -24,12 +26,17 @@ const Home2 = () => {
   // Format time
   const formatTime = (timeString) => {
     try {
-      const date = new Date(timeString);
-      return date.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true });
+      const [hourStr, minuteStr] = timeString.slice(11, 16).split(':');
+      let hour = parseInt(hourStr, 10);
+      const minute = minuteStr;
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12 || 12; // convert 0 to 12
+      return `${hour}:${minute} ${ampm}`;
     } catch (e) {
       return "XX:XX";
     }
   };
+  
 
   // Check if a match is upcoming
   const isUpcoming = (resultTime) => {
@@ -357,6 +364,286 @@ const Home2 = () => {
       <div className="max-w-6xl mx-auto p-4">
 
         <TodaysMatch />
+      </div>
+
+      <div className="max-w-6xl mx-auto p-4">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+          </div>
+        )}
+
+        <div className="bg-red-600 p-4 text-white text-center text-xl font-bold rounded-t-lg shadow-lg">
+          Satta Result of {dates.length > 1 && formatDate(dates[1])} & {dates.length > 0 && formatDate(dates[0])}
+        </div>
+
+        {/* Controls */}
+        <div className="bg-white p-4 mb-4 flex flex-col md:flex-row justify-between items-center shadow-md">
+          <div className="text-lg font-semibold text-gray-800 mb-2 md:mb-0">Latest Results</div>
+
+          <div className="flex gap-2">
+            <button
+              className="bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-red-700 transition"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Loading indicator */}
+        {loading && (
+          <div className="bg-white p-8 mb-4 rounded shadow flex justify-center items-center">
+            <div className="flex items-center gap-2">
+              <RefreshCw size={24} className="animate-spin text-red-600" />
+              <span>Loading data...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Matches */}
+        {/* {!loading && upcomingMatches.length > 0 && !showChartView && !showCalendar && (
+          <div className="bg-white p-4 mb-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-red-600">
+              <Clock size={20} />
+              Upcoming Matches Today
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-black text-white">
+                    <th className="border border-gray-300 p-2 text-left">Team</th>
+                    <th className="border border-gray-300 p-2 text-center">Scheduled Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {upcomingMatches.map((match, index) => (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                      <td className="border border-gray-300 p-2 font-medium">{match.team}</td>
+                      <td className="border border-gray-300 p-2 text-center">{formatTime(match.result_time)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )} */}
+
+        {/* Chart View - FIXED TO HANDLE MULTIPLE RESULTS PER DAY */}
+        {!loading && showChartView && selectedTeam && (
+          <div className="bg-white p-4 mb-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-4 text-red-600">Monthly Chart: {selectedTeam.name}</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-black text-white">
+                    <th className="border border-gray-300 p-2 text-left">Date</th>
+                    <th className="border border-gray-300 p-2 text-center">Time</th>
+                    <th className="border border-gray-300 p-2 text-right">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedTeam.chartData && selectedTeam.chartData.length > 0 ? (
+                    selectedTeam.chartData.map((item, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="border border-gray-300 p-2">
+                          {item.result_time ? new Date(item.result_time).toLocaleDateString() : "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          {item.result_time ? formatTime(item.result_time) : "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-right font-bold">
+                          {item.visible_result === '-1' || item.result === '-1'
+                            ? "Yet to Announce"
+                            : (item.visible_result || item.result || "N/A")
+                          }
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="3" className="border border-gray-300 p-2 text-center">No chart data available</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
+                onClick={() => setShowChartView(false)}
+              >
+                Back to Results
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Calendar View - Improved Responsive Design */}
+        {!loading && showCalendar && (
+          <div className="bg-white p-4 mb-4 rounded shadow">
+            <div className="flex justify-between items-center mb-4">
+              <button
+                className="bg-black text-white p-2 rounded flex items-center gap-1 hover:bg-gray-800 transition"
+                onClick={() => handleMonthChange(-1)}
+              >
+                <ChevronLeft size={16} />
+                <span className="hidden sm:inline">Previous</span>
+              </button>
+
+              <h2 className="text-lg font-semibold text-red-600">
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h2>
+
+              <button
+                className="bg-black text-white p-2 rounded flex items-center gap-1 hover:bg-gray-800 transition"
+                onClick={() => handleMonthChange(1)}
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="text-center font-semibold bg-gray-800 text-white p-1 text-xs sm:text-sm">{day}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarData.map((day, index) => (
+                <div
+                  key={index}
+                  className={`border rounded p-1 overflow-y-auto ${day ? 'bg-white' : 'bg-gray-100'
+                    }`}
+                  style={{
+                    height: "120px",
+                    maxHeight: "120px"
+                  }}
+                >
+                  {day && (
+                    <>
+                      <div className={`text-right text-sm font-medium ${new Date().toISOString().split('T')[0] === day.date ?
+                        'bg-red-600 text-white p-1 rounded-full w-6 h-6 flex items-center justify-center ml-auto' :
+                        'text-gray-700'
+                        }`}>
+                        {day.day}
+                      </div>
+                      <div className="overflow-y-auto" style={{ maxHeight: "90px" }}>
+                        {day.results.length > 0 ? (
+                          day.results.map((teamResult, i) => (
+                            <div key={i} className="mt-1 border-t border-gray-200 pt-1">
+                              <div className="font-semibold text-xs text-red-600">{teamResult.team}</div>
+                              {teamResult.results.map((r, j) => (
+                                <div key={j} className="text-xs flex justify-between">
+                                  <span className="text-gray-500">{r.time}</span>
+                                  <span className="font-bold">{r.result}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-gray-400 mt-2 text-center">No results</div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
+                onClick={() => setShowCalendar(false)}
+              >
+                Back to Results
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Teams Table with multiple results support */}
+        {!loading && !showCalendar && !showChartView && (
+          <div className="bg-white rounded-b-lg overflow-hidden shadow-lg">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-black text-white">
+                  <th className="p-3 text-left">Games List</th>
+                  <th className="p-3 text-center">
+                    {dates.length > 0 && new Date(dates[0]).toLocaleDateString('en-US', { weekday: 'short' })} {dates.length > 0 && new Date(dates[0]).getDate()}th
+                  </th>
+                  <th className="p-3 text-center">
+                    {dates.length > 1 && new Date(dates[1]).toLocaleDateString('en-US', { weekday: 'short' })} {dates.length > 1 && new Date(dates[1]).getDate()}th
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map(team => (
+                  <tr key={team.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3">
+                      <div className="font-semibold text-red-600">{team.name}</div>
+                      <div className="text-xs text-black underline mt-1 cursor-pointer hover:text-red-600" onClick={() => handleViewChart(team)}>Record Chart</div>
+                    </td>
+
+                    <td className="p-3 text-center">
+                      {dates.length > 0 && team.results[dates[0]] && team.results[dates[0]].length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {team.results[dates[0]].map((result, idx) => (
+                            <div key={idx} className="flex flex-col">
+                              <span className="text-2xl font-bold">{result.result}</span>
+                              <span className="text-xs text-gray-500">{result.time}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-2xl font-bold text-gray-400">XX</span>
+                      )}
+                    </td>
+
+                    <td className="p-3 text-center">
+                      {dates.length > 1 && team.results[dates[1]] && team.results[dates[1]].length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {team.results[dates[1]].map((result, idx) => (
+                            <div key={idx} className="flex flex-col">
+                              <span className="text-2xl font-bold">{result.result}</span>
+                              <span className="text-xs text-gray-500">{result.time}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-2xl font-bold text-gray-400">XX</span>
+                      )}
+                    </td>
+
+                    {/* <td className="p-3">
+                      <div className="flex justify-center">
+                        <button
+                          className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition"
+                          onClick={() => handleViewChart(team)}
+                          title="View Monthly Chart"
+                        >
+                          <BarChart2 size={16} />
+                        </button>
+                      </div>
+                    </td> */}
+                  </tr>
+                ))}
+                {teams.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="p-4 text-center">No teams found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+{/* 
+            <div className="bg-black text-white text-center p-3">
+              <button className="hover:text-red-400 transition" onClick={handleCalendarView}>Click here for all games results.</button>
+            </div> */}
+          </div>
+        )}
       </div>
 
       <Footer />
