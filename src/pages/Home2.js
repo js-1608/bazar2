@@ -24,18 +24,24 @@ const Home2 = () => {
   const API_URL = 'https://backend.matkasattadaily.com/api';
 
   // Format time
-  const formatTime = (timeString) => {
+  const formatTime = (utcString) => {
     try {
-      const [hourStr, minuteStr] = timeString.slice(11, 16).split(':');
-      let hour = parseInt(hourStr, 10);
-      const minute = minuteStr;
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      hour = hour % 12 || 12; // convert 0 to 12
-      return `${hour}:${minute} ${ampm}`;
+      const dateInUTC = new Date(utcString);
+  
+      const indiaTime = dateInUTC.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata', 
+        hour: 'numeric', 
+        minute: 'numeric', 
+        hour12: true 
+      });
+  
+      return indiaTime;
     } catch (e) {
       return "XX:XX";
     }
   };
+  
+  
   
 
   // Check if a match is upcoming
